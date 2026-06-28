@@ -35,6 +35,8 @@ pins versions into `armar.lock`, renders the Reforger JSON config, and installs/
 - `uv-python-tooling` (reference) — uv is mandatory for all Python operations (deps, runs, envs)
 - `test-conventions` (reference) — Integration-first, DI-based mocking test conventions
 - `vertical-slice` (reference) — Feature-sliced layout + layer separation patterns
+- `qtquick2` (reference) — Idiomatic QtQuick 2 + QML as used in KDE apps (auto-loads when writing/reviewing `.qml` or QtQuick code)
+- `kirigami` (reference) — Kirigami framework + KDE Human Interface Guidelines (auto-loads on Kirigami/KDE UI code)
 
 ### Internal Pipeline Skills (invoked by workflows or directly by the model; hidden from the `/` menu)
 - plan-critic (review) — Self-review spec documents before presenting
