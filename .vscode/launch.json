@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Debug the armar CLI. Edit "args" for the subcommand you want to step through,
+      // e.g. ["resolve"], ["config", "render"], ["--help"].
+      "name": "armar CLI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "armar_server",
+      "args": ["--help"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Python: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

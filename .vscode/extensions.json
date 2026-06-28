@@ -1,0 +1,14 @@
+{
+  // Recommended extensions for armar-server. VS Code will prompt to install these.
+  "recommendations": [
+    "ms-python.python",        // Python language support, test/debug integration
+    "charliermarsh.ruff",      // Ruff linter + formatter (matches [tool.ruff])
+    "detachhead.basedpyright", // basedpyright type checker (matches [tool.basedpyright])
+    "tamasfe.even-better-toml",// pyproject.toml / *.toml editing
+    "exiasr.hadolint"          // Dockerfile linting (uses .hadolint.yaml)
+  ],
+  "unwantedRecommendations": [
+    // basedpyright replaces Pylance; avoid duplicate diagnostics.
+    "ms-python.vscode-pylance"
+  ]
+}
