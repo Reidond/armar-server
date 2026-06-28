@@ -1,0 +1,19 @@
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environment
+.env
+.env.*
+
+# armar runtime artifacts (per-deployment; server.toml may hold secrets, data/ is large)
+/server.toml
+/armar.lock
+/data/
+
+# OS / editor
+.DS_Store
