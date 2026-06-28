@@ -1,0 +1,5 @@
+# hadolint configuration
+ignored:
+  # Pinning exact apt package versions is impractical and brittle for the
+  # ubuntu + SteamCMD runtime deps used here.
+  - DL3008

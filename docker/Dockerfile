@@ -10,6 +10,9 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8
 
+# Fail any RUN pipeline on the first error (best practice; satisfies hadolint DL4006).
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN dpkg --add-architecture i386 \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -32,7 +35,7 @@ RUN mkdir -p /opt/steamcmd \
 ARG UID=1000
 ARG GID=1000
 RUN groupadd -g "${GID}" steam \
- && useradd -m -u "${UID}" -g "${GID}" -s /bin/bash steam \
+ && useradd -l -m -u "${UID}" -g "${GID}" -s /bin/bash steam \
  && mkdir -p /server /profile /config /addons-tmp \
  && chown -R steam:steam /opt/steamcmd /server /profile /config /addons-tmp
 
