@@ -1,0 +1,117 @@
+---
+description: Test conventions for project backend. Enforces timeout decorators, DI-based mocking, base class inheritance, and integration-first philosophy whenever test files are written or edited.
+globs:
+  - "tests/**/*.py"
+alwaysApply: false
+---
+
+# Test Conventions — Project Backend
+
+## 4 Non-Negotiable Requirements
+
+**1. Every test method MUST have a timeout decorator.**
+
+```python
+from tests.utils.timeout_decorator import fast_test, integration_test, websocket_test
+
+@fast_test(3)               # unit tests, endpoint tests
+@integration_test(5)        # standard DB integration
+@integration_test(15)       # complex multi-step flows
+@websocket_test(10)         # WebSocket tests
+```
+
+Apply below all `@pytest.mark.*` decorators, directly above `async def`.
+
+---
+
+**2. All 3rd-party services MUST be mocked via DI overrides — never `patch()`.**
+
+Fixtures available from `conftest.py`:
+- `mock_openai_client` / `override_openai_client`
+- `mock_cloud_storage_client` / `override_cloud_storage_service`
+- `mock_http_client_factory` / `override_http_client_factory`
+- `mock_ai_chat_provider` / `override_ai_chat_provider`
+
+**FORBIDDEN:**
+```python
+# NEVER do this
+with unittest.mock.patch("app.features.xyz.OpenAIClient") as mock:
+    ...
+```
+
+**REQUIRED:**
+```python
+# ALWAYS inject via constructor or DI override fixture
+@pytest.fixture
+def service(self, async_session, mock_openai_client):
+    return MyService(db=async_session, openai_client=mock_openai_client)
+```
+
+---
+
+**3. Endpoint tests MUST inherit a base class. Service/integration tests MUST NOT.**
+
+```python
+# HTTP endpoint tests → inherit base class
+class TestMyEndpoints(BaseCRUDTest, BaseAuthTest):
+    endpoint_url = "/api/v1/my-resource"
+    factory_class = MyFactory
+    response_schema = MyResponse
+    create_schema = MyCreate
+
+# Service / DB integration tests → standalone class, no inheritance
+class TestMyServiceIntegration:
+    @pytest.fixture
+    def service(self, async_session, mock_openai_client):
+        return MyService(db=async_session, openai_client=mock_openai_client)
+```
+
+---
+
+**4. No performance tests, no load tests, no `@pytest.mark.external` tests.**
+
+Tests that benchmark timing thresholds or call real external services are forbidden.
+If you see `@pytest.mark.performance` or `@pytest.mark.external` — remove them.
+
+---
+
+## Philosophy
+
+**Integration-first.** Prefer one comprehensive test class that covers all cases
+(happy path + all error cases + edge cases) in the same class over many micro-tests.
+
+```python
+class TestMyServiceIntegration:
+    # ── Happy path ──
+    async def test_create_stores_record(self, ...): ...
+    async def test_list_returns_all_records(self, ...): ...
+
+    # ── Error cases ──
+    async def test_create_raises_not_found_when_missing(self, ...): ...
+    async def test_create_raises_conflict_on_duplicate(self, ...): ...
+
+    # ── Edge cases ──
+    async def test_list_returns_empty_for_new_user(self, ...): ...
+```
+
+---
+
+## Quick Decision Table
+
+| What you're testing | Base class | Timeout |
+|---|---|---|
+| HTTP endpoint | `BaseCRUDTest` / `BaseAuthTest` | `@fast_test(3)` |
+| Service + real DB | none (standalone) | `@integration_test(5–20)` |
+| WebSocket | none (standalone) | `@websocket_test(10)` |
+| Pure logic / CRUD | none (standalone) | `@fast_test(3)` |
+
+---
+
+## Full Patterns
+
+See `.claude/skills/test-conventions/SKILL.md` for:
+- DI mocking examples for all 3 external services
+- Factory usage (`create_async`, `create_batch_async`)
+- Test naming rules (`test_<what>_when_<condition>_<expected_outcome>`)
+- Complete anti-patterns list
+- Pre-writing checklist
