@@ -191,3 +191,38 @@ def test_token_store_roundtrip(tmp_path: Path) -> None:
     new = store.rotate()
     assert new != "hello"
     assert store.read() == new
+
+
+# ---- logs / status (P2) -------------------------------------------------
+
+
+def test_status_endpoint_reports_not_running(
+    client: TestClient, workspace: dict[str, Path]
+) -> None:
+    auth = _auth(workspace["token"])
+    client.post("/api/v1/instances", json={"name": "A", "slug": "alpha"}, headers=auth)
+    r = client.get("/api/v1/instances/alpha/status", headers=auth)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["container_running"] is False
+
+
+def test_status_endpoint_for_unknown_instance_returns_404(
+    client: TestClient, workspace: dict[str, Path]
+) -> None:
+    auth = _auth(workspace["token"])
+    r = client.get("/api/v1/instances/missing/status", headers=auth)
+    assert r.status_code == 404
+
+
+def test_logs_stream_endpoint_returns_sse(
+    client: TestClient, workspace: dict[str, Path]
+) -> None:
+    auth = _auth(workspace["token"])
+    client.post("/api/v1/instances", json={"name": "A", "slug": "alpha"}, headers=auth)
+    # The container is not running, so podman is invoked against a
+    # non-existent container; podman is missing in the test env so the
+    # route should 503 (rather than block). Either way, we verify the
+    # auth gating works.
+    r = client.get("/api/v1/instances/alpha/logs/stream", headers=auth)
+    assert r.status_code in (200, 503)

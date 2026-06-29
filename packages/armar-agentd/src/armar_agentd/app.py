@@ -22,7 +22,7 @@ from armar_server.contracts import PROTOCOL_VERSION
 from armar_server.errors import ArmarError
 
 from .jobs import JobManager
-from .routes import config, host, instances, jobs, lifecycle, mods, scenarios
+from .routes import config, host, instances, jobs, lifecycle, logs, mods, scenarios
 from .security import AgentSettings, TokenStore, make_token_dependency
 
 
@@ -64,6 +64,7 @@ def create_app(
     app.include_router(mods.router)
     app.include_router(config.router)
     app.include_router(scenarios.router)
+    app.include_router(logs.router)
 
     @app.exception_handler(ArmarError)
     async def _on_armar_error(_request: Request, exc: ArmarError) -> JSONResponse:

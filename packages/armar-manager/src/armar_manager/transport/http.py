@@ -201,6 +201,64 @@ class HttpAgentClient(AgentClient):
         )
         return AppConfigView.model_validate(data)
 
+    # --- live logs ----------------------------------------------------
+
+    async def stream_logs(  # type: ignore[override]
+        self, slug: str, tail: int = 50
+    ):
+        url = self._url(f"api/v1/instances/{slug}/logs/stream?tail={tail}")
+        headers = {"Accept": "text/event-stream"}
+        async with self._client.stream("GET", url, headers=headers) as response:
+            response.raise_for_status()
+            event_data: list[str] = []
+            event_id = 0
+            event_type = "message"
+            async for line in response.aiter_lines():
+                if not line:
+                    if not event_data:
+                        continue
+                    payload = "\n".join(event_data)
+                    if event_type == "heartbeat":
+                        event_data.clear()
+                        event_id = 0
+                        event_type = "message"
+                        continue
+                    try:
+                        data = json.loads(payload) if payload else {}
+                    except json.JSONDecodeError:
+                        data = {}
+                    yield LifecycleEvent.model_validate(
+                        {
+                            "seq": event_id,
+                            "type": _sse_type(event_type),
+                            **{
+                                k: v
+                                for k, v in data.items()
+                                if k not in {"seq", "type"}
+                            },
+                        }
+                    )
+                    event_data.clear()
+                    event_id = 0
+                    event_type = "message"
+                    continue
+                if line.startswith(":"):
+                    continue
+                if ":" in line:
+                    field, _, value = line.partition(":")
+                    value = value.lstrip(" ")
+                else:
+                    field, value = line, ""
+                if field == "id":
+                    try:
+                        event_id = int(value)
+                    except ValueError:
+                        event_id = 0
+                elif field == "event":
+                    event_type = value
+                elif field == "data":
+                    event_data.append(value)
+
 
 def _sse_type(name: str) -> SseEventType:
     name = name.lower()
