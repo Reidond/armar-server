@@ -47,6 +47,7 @@ extend-immutable-calls = ["typer.Argument", "typer.Option"]
 "packages/armar-manager/**" = ["S104"]
 "packages/armar-core/tests/**" = ["S101"]  # `assert` is the whole point of tests
 "packages/*/tests/**" = ["S101"]
+"tests/**" = ["S101"]
 
 [tool.basedpyright]
 pythonVersion = "3.12"
@@ -62,6 +63,6 @@ extraPaths = ["packages/armar-core/tests"]
 reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
-testpaths = ["packages/*/tests"]
+testpaths = ["packages/*/tests", "tests"]
 addopts = "-q"
-pythonpath = ["packages/armar-core", "packages/armar-agentd"]
+pythonpath = ["packages/armar-core", "packages/armar-agentd", "scripts"]

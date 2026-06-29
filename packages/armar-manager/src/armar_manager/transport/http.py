@@ -231,11 +231,7 @@ class HttpAgentClient(AgentClient):
                         {
                             "seq": event_id,
                             "type": _sse_type(event_type),
-                            **{
-                                k: v
-                                for k, v in data.items()
-                                if k not in {"seq", "type"}
-                            },
+                            **{k: v for k, v in data.items() if k not in {"seq", "type"}},
                         }
                     )
                     event_data.clear()

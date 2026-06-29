@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Armar Manager
+GenericName=Arma Reforger Server Manager
+Comment=Manage N modded Arma Reforger servers across M machines
+Exec=armar-manager
+Icon=io.github.anomalyco.ArmarManager
+Terminal=false
+Categories=Game;Utility;
+Keywords=arma;reforger;server;mod;
+StartupNotify=true
+StartupWMClass=ArmarManager

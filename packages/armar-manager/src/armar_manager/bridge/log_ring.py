@@ -43,7 +43,8 @@ class LogRingModel(QAbstractListModel):
         }
 
     def rowCount(  # type: ignore[override]
-        self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()  # noqa: B008
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
     ) -> int:
         if parent.isValid():
             return 0

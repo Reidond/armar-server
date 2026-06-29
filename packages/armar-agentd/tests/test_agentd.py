@@ -215,9 +215,7 @@ def test_status_endpoint_for_unknown_instance_returns_404(
     assert r.status_code == 404
 
 
-def test_logs_stream_endpoint_returns_sse(
-    client: TestClient, workspace: dict[str, Path]
-) -> None:
+def test_logs_stream_endpoint_returns_sse(client: TestClient, workspace: dict[str, Path]) -> None:
     auth = _auth(workspace["token"])
     client.post("/api/v1/instances", json={"name": "A", "slug": "alpha"}, headers=auth)
     # The container is not running, so podman is invoked against a

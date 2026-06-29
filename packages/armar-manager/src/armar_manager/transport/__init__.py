@@ -9,6 +9,7 @@ from .hostkeys import (
     HostKeyRejected,
 )
 from .http import HttpAgentClient, LocalConnection
+from .system_tunnel import SystemSshTunnel
 from .tunnel import (
     DEFAULT_AGENTD_PORT,
     AsyncSshTunnel,
@@ -27,6 +28,7 @@ __all__ = [
     "HostKeyRejected",
     "HttpAgentClient",
     "LocalConnection",
+    "SystemSshTunnel",
     "TunnelError",
     "TunnelSpec",
 ]

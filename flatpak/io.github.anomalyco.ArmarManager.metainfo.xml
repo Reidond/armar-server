@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.anomalyco.ArmarManager</id>
+  <name>Armar Manager</name>
+  <summary>Manage modded Arma Reforger dedicated servers</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      Armar Manager is a Kirigami/PySide6 desktop application that manages
+      N modded Arma Reforger dedicated servers across M machines, by
+      speaking HTTP+SSE to a small `armar-agentd` daemon over an SSH tunnel.
+    </p>
+    <p>
+      It uses your existing SSH keys to authenticate to remote machines, so
+      there is no public port to expose. Mods are resolved from Workshop URLs
+      and pinned into a lockfile for reproducible runs.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/anomalyco/armar-server</url>
+  <categories>
+    <category>Game</category>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-01-01">
+      <description>
+        <p>Initial release with multi-server instance model, agentd, and desktop UI shell.</p>
+      </description>
+    </release>
+  </releases>
+</component>

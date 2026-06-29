@@ -1,0 +1,44 @@
+id: io.github.anomalyco.ArmarManager
+runtime: org.kde.Platform
+runtime-version: '6.8'
+sdk: org.kde.Sdk
+base: io.qt.PySide.BaseApp
+base-version: '6.8'
+command: armar-manager
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=ssh-auth
+  - --filesystem=~/.ssh/config:ro
+  - --filesystem=~/.ssh/known_hosts:ro
+  - --talk-name=org.freedesktop.secrets
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/pkgconfig
+  - /share/man
+  - /share/doc
+  - /share/gtk-doc
+  - /share/aclocal
+  - /share/bash-completion
+  - /share/icons/AdwaitaLegacyLegacy
+  - '*.a'
+  - '*.la'
+modules:
+  - name: python3-deps
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-deps --no-index --prefix=/app --find-links=python3-deps flatpak-wheels/*.whl
+    sources:
+      - type: dir
+        path: python3-deps
+  - name: armar-manager
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-deps --no-index --prefix=/app ./packages/armar-core ./packages/armar-manager
+    sources:
+      - type: dir
+        path: .
