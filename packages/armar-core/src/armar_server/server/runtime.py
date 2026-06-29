@@ -139,7 +139,7 @@ class CliContainerRuntime:
 
     def _run(self, argv: list[str]) -> int:
         self._ensure_available()
-        return subprocess.run(argv, check=False).returncode
+        return subprocess.run(argv, check=False).returncode  # noqa: S603 — argv built by pure builder
 
     def run(self, spec: RunSpec) -> int:
         return self._run(self.build_run_argv(spec))
@@ -168,7 +168,7 @@ class CliContainerRuntime:
 
     def is_running(self, name: str) -> bool:
         self._ensure_available()
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603 — argv is fixed (binary + ps subcommand + name)
             [self._binary, "ps", "--filter", f"name=^{name}$", "--format", "{{.Names}}"],
             capture_output=True,
             text=True,

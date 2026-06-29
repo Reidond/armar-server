@@ -36,7 +36,7 @@ uv sync                 # creates the venv and installs everything from uv.lock
 uv run armar --help
 ```
 
-Optionally install the `armar` command globally: `uv tool install .`
+Optionally install the `armar` command globally: `uv tool install ./packages/armar-cli`
 
 ## Quickstart
 
@@ -120,7 +120,7 @@ libs). The server **binary, downloaded mods, and config live on host volumes** (
 - **Fedora/Podman:** volume mounts are SELinux-relabeled (`:Z`) and the container user is mapped to
   your host user (`--userns=keep-id`) automatically.
 - **Runtime/image overrides:** `ARMAR_RUNTIME` (`podman`|`docker`), `ARMAR_IMAGE`, `ARMAR_DATA_DIR`,
-  `ARMAR_CONFIG_FILE`, `ARMAR_LOCK_FILE`, `ARMAR_NETWORK_MODE` (see `src/armar_server/config/settings.py`).
+  `ARMAR_CONFIG_FILE`, `ARMAR_LOCK_FILE`, `ARMAR_NETWORK_MODE` (see `packages/armar-core/src/armar_server/config/settings.py`).
 
 ## Running as a service
 
@@ -147,7 +147,7 @@ Use `armar service install --print` to preview the unit without writing it.
 
 ```bash
 uv run ruff check . && uv run ruff format --check .
-uv run basedpyright src tests
+uv run basedpyright
 uv run pytest
 ```
 

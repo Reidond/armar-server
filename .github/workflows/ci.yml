@@ -29,7 +29,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
       - run: uv run --locked ruff check --output-format=github .
 
   format:
@@ -42,7 +42,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
       - run: uv run --locked ruff format --check --diff .
 
   typecheck:
@@ -55,8 +55,8 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
-      - run: uv run --locked basedpyright src tests
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv run --locked basedpyright
 
   test:
     name: Tests (py${{ matrix.python-version }})
@@ -72,7 +72,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
           python-version: ${{ matrix.python-version }}
       - run: uv run --locked --python ${{ matrix.python-version }} pytest -q
 
@@ -86,26 +86,40 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
       - run: uv lock --check
 
   build:
-    name: Build & smoke-test wheel
+    name: Build wheels
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv build --all-packages
+
+  wheel-smoke:
+    name: Wheel smoke (armar-core + armar-cli)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           version: ${{ env.UV_VERSION }}
-          enable-cache: true
-          cache-dependency-glob: uv.lock
-      - run: uv build
-      - name: Install the built wheel in a clean env and run the CLI
-        run: |
+      - run: |
           uv venv /tmp/smoke
-          uv pip install --python /tmp/smoke/bin/python dist/*.whl
+          uv pip install --python /tmp/smoke/bin/python --find-links dist armar-core armar-cli
           /tmp/smoke/bin/armar --help
+          /tmp/smoke/bin/armar --version
 
   dockerfile-lint:
     name: Hadolint
@@ -165,6 +179,7 @@ jobs:
       - test
       - lock
       - build
+      - wheel-smoke
       - dockerfile-lint
       - shellcheck
       - docker-build

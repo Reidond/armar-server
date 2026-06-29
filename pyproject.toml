@@ -1,26 +1,14 @@
-[project]
-name = "armar-server"
-version = "0.1.0"
-description = "uv-managed CLI to run a modded Arma Reforger dedicated server in a container, with mods parsed from Arma Workshop URLs."
-readme = "README.md"
-authors = [
-    { name = "Andrii Shafar", email = "andriishafar69@gmail.com" }
-]
-requires-python = ">=3.12"
-dependencies = [
-    "httpx>=0.28.1",
-    "pydantic>=2",
-    "pydantic-settings>=2.14.2",
-    "tomli-w>=1.2.0",
-    "typer>=0.26.8",
-]
+[tool.uv]
+# Virtual workspace root — no [project], no [build-system], no scripts.
+# Member packages live under `packages/`.
+[tool.uv.workspace]
+members = ["packages/*"]
 
-[project.scripts]
-armar = "armar_server.cli:app"
-
-[build-system]
-requires = ["uv_build>=0.11.25,<0.12.0"]
-build-backend = "uv_build"
+[tool.uv.sources]
+armar-core = { workspace = true }
+armar-cli = { workspace = true }
+armar-agentd = { workspace = true }
+armar-manager = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -29,35 +17,51 @@ dev = [
     "pytest-httpx>=0.36.2",
     "ruff>=0.15.20",
 ]
+lint = [
+    { include-group = "dev" },
+    "actionlint-py>=1.7.0",
+    "shellcheck-py>=0.10.0",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["src", "tests"]
-extend-exclude = [".claude", ".ai", "docs", ".venv"]
+src = ["packages/armar-core/src", "packages/armar-core/tests", "packages/armar-cli/armar_cli"]
+extend-exclude = [".claude", ".ai", "docs", ".venv", "packages/*/build", "packages/*/dist"]
 
 [tool.ruff.lint]
 select = [
-    "E", "F", "W",   # pycodestyle / pyflakes
-    "I",             # isort
-    "UP",            # pyupgrade
-    "B",             # flake8-bugbear
-    "SIM",           # flake8-simplify
-    "C4",            # comprehensions
-    "RUF",           # ruff-specific
+    "E", "F", "W",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+    "C4",
+    "RUF",
+    "S",
 ]
-
 [tool.ruff.lint.flake8-bugbear]
-# Typer's parameter-default idiom is intentional, not a B008 bug.
 extend-immutable-calls = ["typer.Argument", "typer.Option"]
+[tool.ruff.lint.per-file-ignores]
+"packages/armar-agentd/**" = ["S104"]  # bind addresses are loopback
+"packages/armar-manager/**" = ["S104"]
+"packages/armar-core/tests/**" = ["S101"]  # `assert` is the whole point of tests
+"packages/*/tests/**" = ["S101"]
 
 [tool.basedpyright]
 pythonVersion = "3.12"
 typeCheckingMode = "standard"
-include = ["src", "tests"]
-extraPaths = ["tests"]  # tests import sibling `factories` helper (pytest prepend mode)
+include = [
+    "packages/armar-core/src",
+    "packages/armar-core/tests",
+    "packages/armar-cli/armar_cli",
+    "packages/armar-agentd/src",
+    "packages/armar-manager/src",
+]
+extraPaths = ["packages/armar-core/tests"]
 reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["packages/armar-core/tests"]
 addopts = "-q"
+pythonpath = ["packages/armar-core"]

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+name = "armar-manager"
+description = "Kirigami/PySide6 desktop app that manages N Reforger servers across M machines."
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "armar-core>=0.0.0",
+    "PySide6>=6.7.0",
+    "qasync>=0.27.1",
+    "httpx>=0.28.1",
+    "pydantic>=2",
+]
+
+[project.scripts]
+armar-manager = "armar_manager.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/armar_manager"]
+include = ["src/armar_manager/qml"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+fallback-version = "0.0.0"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { git = { commit = true, tags = true } },
+]

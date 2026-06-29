@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+name = "armar-core"
+description = "Core library for armar-server: config, workshop, runtime, contracts."
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2",
+    "pydantic-settings>=2.14.2",
+    "tomli-w>=1.2.0",
+]
+[project.optional-dependencies]
+# `armar-core[cli]` is what the `armar` script depends on. The bare wheel
+# (no [cli]) is what `armar-agentd` depends on so it stays free of `typer`/`rich`.
+cli = ["typer>=0.26.8", "rich>=13.7.0"]
+agentd = ["fastapi>=0.110.0", "uvicorn>=0.29.0", "sse-starlette>=2.0.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/armar_server"]
+# Keep our config (server.toml template) shippable
+include = ["src/armar_server/py.typed"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+fallback-version = "0.0.0"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { git = { commit = true, tags = true } },
+]

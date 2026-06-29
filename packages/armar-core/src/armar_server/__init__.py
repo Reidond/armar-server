@@ -4,4 +4,11 @@ A small CLI that turns Arma Workshop URLs into a valid Reforger dedicated-server
 config and runs the server in a container (Podman/Docker).
 """
 
-__version__ = "0.1.0"
+from __future__ import annotations
+
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("armar-core")
+except PackageNotFoundError:
+    __version__ = "0.0.0+unknown"

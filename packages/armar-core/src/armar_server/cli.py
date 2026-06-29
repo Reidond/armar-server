@@ -16,6 +16,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from . import __version__
 from .config.loader import (
     load_app_config,
     load_lock,
@@ -144,8 +145,26 @@ def _install_server(settings: AppSettings, *, validate: bool) -> None:
 # --------------------------------------------------------------------------- #
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        import sys
+
+        sys.stdout.write(f"armar {__version__}\n")
+        sys.stdout.flush()
+        raise typer.Exit(code=0)
+
+
 @app.callback()
-def _main(verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging.")) -> None:
+def _main(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging."),
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
+        help="Print the armar-core version and exit.",
+    ),
+) -> None:
     setup_logging(verbose=verbose)
 
 

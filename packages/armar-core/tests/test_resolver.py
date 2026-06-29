@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from armar_server.workshop.resolver import DependencyResolver
-from factories import FakeWorkshopClient, make_asset, pages
+
+from .factories import FakeWorkshopClient, make_asset, pages
 
 
 def test_resolve_diamond_dedup_and_order() -> None:

@@ -40,14 +40,14 @@ class ModEntry(BaseModel):
 class A2S(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    address: str = "0.0.0.0"
+    address: str = "0.0.0.0"  # noqa: S104 — default A2S bind (server config, not a server bind)
     port: int = 17777
 
 
 class Rcon(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    address: str = "0.0.0.0"
+    address: str = "0.0.0.0"  # noqa: S104 — default RCON bind (server config, not a server bind)
     port: int = 19999
     password: str
     permission: str = "admin"  # "admin" | "monitor"
