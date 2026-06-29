@@ -62,6 +62,6 @@ extraPaths = ["packages/armar-core/tests"]
 reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
-testpaths = ["packages/armar-core/tests"]
+testpaths = ["packages/*/tests"]
 addopts = "-q"
-pythonpath = ["packages/armar-core"]
+pythonpath = ["packages/armar-core", "packages/armar-agentd"]

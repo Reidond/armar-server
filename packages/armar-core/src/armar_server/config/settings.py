@@ -25,6 +25,11 @@ class AppSettings(BaseSettings):
     lock_file: Path = Path("armar.lock")
     rendered_config_name: str = "server-config.json"
 
+    # --- per-instance registry (one instance = one subdir under here) ---
+    @property
+    def instances_dir(self) -> Path:
+        return self.data_dir / "instances"
+
     # --- container runtime ---
     runtime: str = "podman"  # "podman" | "docker"
     image: str = "armar-reforger:latest"

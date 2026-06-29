@@ -4,8 +4,7 @@ import pytest
 
 from armar_server.errors import WorkshopParseError
 from armar_server.workshop.parser import parse_asset
-
-from .factories import make_asset, wrap_page
+from factories import make_asset, wrap_page
 
 
 def test_parse_asset_reads_core_fields() -> None:

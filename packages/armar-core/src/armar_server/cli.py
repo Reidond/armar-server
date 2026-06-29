@@ -17,6 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
+from .config.instance import validate_slug
 from .config.loader import (
     load_app_config,
     load_lock,
@@ -25,6 +26,12 @@ from .config.loader import (
     save_lock,
 )
 from .config.models import LockEntry, LockFile
+from .config.registry import (
+    InstanceAlreadyExistsError,
+    InstanceNotFoundError,
+    InstanceRegistry,
+    InstanceRunningError,
+)
 from .config.settings import AppSettings
 from .errors import ArmarError, ConfigError
 from .logging import setup_logging
@@ -47,8 +54,10 @@ app = typer.Typer(
 )
 mods_app = typer.Typer(help="Manage the mod list in server.toml.", no_args_is_help=True)
 service_app = typer.Typer(help="Generate systemd units for the server.", no_args_is_help=True)
+instance_app = typer.Typer(help="Manage multi-server instances.", no_args_is_help=True)
 app.add_typer(mods_app, name="mods")
 app.add_typer(service_app, name="service")
+app.add_typer(instance_app, name="instance")
 
 
 _DEFAULT_TOML = """\
@@ -484,6 +493,124 @@ def service_install(
         dest.write_text(unit, encoding="utf-8")
         console.print(f"[green]Wrote[/] {dest}")
         console.print(f"Enable with: [bold]{reload_hint}[/]")
+
+
+# --------------------------------------------------------------------------- #
+# instance subcommands
+# --------------------------------------------------------------------------- #
+
+
+@instance_app.command("list")
+def instance_list() -> None:
+    """List all instances in the registry."""
+    with _guard():
+        registry = InstanceRegistry(_settings())
+        rows = registry.list()
+        if not rows:
+            console.print("No instances. Use [bold]armar instance create[/].")
+            return
+        table = Table(title=f"Instances ({len(rows)})", show_lines=False)
+        table.add_column("slug", style="cyan", no_wrap=True)
+        table.add_column("name")
+        table.add_column("game", justify="right", style="green")
+        table.add_column("a2s", justify="right", style="green")
+        table.add_column("rcon", justify="right", style="green")
+        table.add_column("created", style="dim")
+        for m in rows:
+            table.add_row(
+                m.slug,
+                m.name,
+                str(m.game_port),
+                str(m.a2s_port),
+                str(m.rcon_port),
+                m.created_at.strftime("%Y-%m-%d %H:%M"),
+            )
+        console.print(table)
+
+
+@instance_app.command("show")
+def instance_show(slug: str = typer.Argument(..., help="Instance slug.")) -> None:
+    """Show a single instance's layout."""
+    with _guard():
+        try:
+            settings = InstanceRegistry(_settings()).show(slug)
+        except InstanceNotFoundError:
+            raise ConfigError(f"instance {slug!r} not found") from None
+        table = Table(title=f"Instance {settings.slug}")
+        table.add_column("key", style="bold")
+        table.add_column("value")
+        table.add_row("slug", settings.slug)
+        table.add_row("name", settings.name)
+        table.add_row("container_name", settings.container_name)
+        table.add_row("server_dir", str(settings.server_dir))
+        table.add_row("profile_dir", str(settings.profile_dir))
+        table.add_row("config_dir", str(settings.config_dir))
+        table.add_row("game_port", str(settings.game_port))
+        table.add_row("a2s_port", str(settings.a2s_port))
+        table.add_row("rcon_port", str(settings.rcon_port))
+        table.add_row("network_mode", settings.network_mode)
+        console.print(table)
+
+
+@instance_app.command("create")
+def instance_create(
+    name: str = typer.Option(..., "--name", help="Human-readable instance name."),
+    slug: str = typer.Option(..., "--slug", help="URL-safe slug (lowercase, hyphens)."),
+    network_mode: str = typer.Option("host", "--network-mode", help="host or bridge."),
+) -> None:
+    """Create a new instance (auto-allocates a port triplet)."""
+    with _guard():
+        try:
+            validate_slug(slug)
+        except ValueError as exc:
+            raise ConfigError(str(exc)) from exc
+        try:
+            settings = InstanceRegistry(_settings()).create(
+                slug=slug, name=name, network_mode=network_mode
+            )
+        except InstanceAlreadyExistsError as exc:
+            raise ConfigError(str(exc)) from exc
+        console.print(
+            f"[green]Created[/] {settings.slug} "
+            f"(game={settings.game_port} a2s={settings.a2s_port} rcon={settings.rcon_port}, "
+            f"container={settings.container_name})"
+        )
+
+
+@instance_app.command("remove")
+def instance_remove(
+    slug: str = typer.Argument(..., help="Instance slug."),
+    force: bool = typer.Option(False, "--force", help="Skip the 'is running' check."),
+) -> None:
+    """Remove an instance's directory."""
+    with _guard():
+        registry = InstanceRegistry(_settings())
+        try:
+            registry.remove(slug, running=force)
+        except InstanceNotFoundError:
+            raise ConfigError(f"instance {slug!r} not found") from None
+        except InstanceRunningError as exc:
+            raise ConfigError(str(exc)) from exc
+        console.print(f"[green]Removed[/] {slug}.")
+
+
+@instance_app.command("adopt-default")
+def instance_adopt_default() -> None:
+    """Migrate the legacy cwd single-server install into the registry."""
+    with _guard():
+        try:
+            settings = InstanceRegistry(_settings()).adopt_default()
+        except InstanceAlreadyExistsError as exc:
+            raise ConfigError(str(exc)) from exc
+        if settings is None:
+            console.print(
+                "[yellow]No legacy install found[/] (data/server missing); nothing to adopt."
+            )
+            return
+        console.print(
+            f"[green]Adopted[/] {settings.slug} "
+            f"(game={settings.game_port} a2s={settings.a2s_port} rcon={settings.rcon_port})"
+        )
 
 
 if __name__ == "__main__":

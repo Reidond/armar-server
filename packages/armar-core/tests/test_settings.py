@@ -14,6 +14,7 @@ def test_defaults_and_derived_paths() -> None:
     assert settings.server_dir == Path("data/server")
     assert settings.profile_dir == Path("data/profile")
     assert settings.rendered_config_path == Path("data/config/server-config.json")
+    assert settings.instances_dir == Path("data/instances")
 
 
 def test_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
