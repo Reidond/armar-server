@@ -79,7 +79,9 @@ flatpak build-finish \
     --command=armar-manager \
     "$BUILD_DIR"
 
-flatpak build-export --user "$REPO_DIR" "$BUILD_DIR"
+mkdir -p "$REPO_DIR"
+
+flatpak build-export "$REPO_DIR" "$BUILD_DIR"
 
 BUNDLE="$OUT_DIR/${APP_ID}.flatpak"
 flatpak build-bundle "$REPO_DIR" "$BUNDLE" "$APP_ID"
