@@ -1,15 +1,16 @@
 name: CD
 
 on:
-  push:
-    branches: [main]   # → preview (rolling prerelease on GH Releases)
-    tags: ['v*']       # → release (GitHub Release artifacts only — no PyPI/Flathub)
+  # Run only after CI completes successfully (push to main or v* tag).
+  # PR CI runs do not trigger CD — filtered by workflow_run.event == push.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
 
-# Mutual exclusion: a single push updates exactly one ref kind, and the
-# preview job re-checks that HEAD does not carry a v* tag.
+# One CD run per commit; do not cancel in-flight Flatpak builds.
 concurrency:
-  group: cd-${{ github.ref }}
+  group: cd-${{ github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -22,12 +23,20 @@ env:
 jobs:
   preview:
     name: Preview release (rolling prerelease)
-    if: github.ref_type == 'branch'
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
           fetch-tags: true
       - uses: astral-sh/setup-uv@v6
@@ -101,12 +110,17 @@ jobs:
 
   release:
     name: Release (GitHub artifacts)
-    if: github.ref_type == 'tag'
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch != 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
           fetch-tags: true
       - uses: astral-sh/setup-uv@v6
@@ -157,11 +171,21 @@ jobs:
       - name: Stage install.sh
         run: cp install/install.sh dist/
 
+      - name: Resolve release tag
+        id: tag
+        run: |
+          TAG="$(git tag --points-at HEAD | grep -E '^v' | sort -V | tail -1)"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No v* tag at HEAD (${{ github.event.workflow_run.head_sha }})"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release with artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "${{ github.ref_name }} — ${{ steps.meta.outputs.version }}"
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "${{ steps.tag.outputs.tag }} — ${{ steps.meta.outputs.version }}"
           generate_release_notes: true
           files: |
             dist/*.whl
