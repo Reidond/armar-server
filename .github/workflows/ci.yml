@@ -104,6 +104,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
       - run: uv build --all-packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: dist/*.whl
 
   wheel-smoke:
     name: Wheel smoke (armar-core + armar-cli)
@@ -111,7 +115,10 @@ jobs:
     timeout-minutes: 10
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist
       - uses: astral-sh/setup-uv@v6
         with:
           version: ${{ env.UV_VERSION }}
@@ -142,17 +149,18 @@ jobs:
 
   qmllint:
     name: qmllint (QML)
+    # ubuntu-latest (24.04 Noble) ships KF5 Kirigami only; KF6 is on Fedora.
     runs-on: ubuntu-latest
+    container:
+      image: fedora:42
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Install system Kirigami QML module
         # Provides org.kde.kirigami (and pulls Qt6 runtime libs that
         # PySide6's bundled qmllint also needs). scripts/qmllint.sh
-        # discovers it under /usr/lib/<triplet>/qt6/qml.
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qml6-module-org-kde-kirigami
+        # discovers it under /usr/lib64/qt6/qml on Fedora.
+        run: dnf install -y --setopt=install_weak_deps=False kf6-kirigami
       - uses: astral-sh/setup-uv@v6
         with:
           version: ${{ env.UV_VERSION }}
