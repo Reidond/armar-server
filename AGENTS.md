@@ -24,7 +24,18 @@ uv run ruff format .             # format
 uv run basedpyright src tests    # type-check
 uv run pytest                    # tests (offline; no network/containers)
 uv run armar --help              # the CLI entry point
+./scripts/qmllint.sh             # lint armar-manager QML (needs system Kirigami)
 ```
+
+The QML lint needs the system `org.kde.kirigami` QML module (Fedora: `kf6-kirigami`;
+Debian/Ubuntu: `qml6-module-org-kde-kirigami`). Our QML uses `qsTr()` (Qt
+Linguist) for localization, so no KLocalizedContext binding is required;
+the `I18nShim` (installed as the QML context object in `app.py`) is
+there for third-party C++ components that still call `i18n()`. Python
+context properties (e.g. `connectionManager`, `machineStore`) are
+silenced per-site with inline `// qmllint disable unqualified`
+directives — keep `UnqualifiedAccess` blocking so new unqualified
+bugs still fail.
 
 Never use `pip`, `poetry`, `pyenv`, or manual venv activation — uv only (`uv add`, `uv sync`,
 `uv run`, `uv lock`). See the `uv-python-tooling` skill.
@@ -122,6 +133,7 @@ SKILL CREATION                          PERIODIC (weekly/biweekly)
 2. **Learnings extraction** (all tasks) — `.claude/skills/task-learnings/SKILL.md`
 3. **Documentation updates** — keep `README.md` + this file in sync with the CLI/config.
 4. **Re-run the gate** — `uv run ruff check . && uv run basedpyright src tests && uv run pytest`.
+   When QML changed, also run `./scripts/qmllint.sh`.
 
 ### Learnings system
 

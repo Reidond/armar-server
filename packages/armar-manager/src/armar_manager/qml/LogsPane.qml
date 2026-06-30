@@ -3,6 +3,8 @@
 // The LogRingModel is exposed by the manager; the model.append() slot
 // is called by the SSE consumer task (transport level).
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
@@ -10,7 +12,7 @@ import org.kde.kirigami as Kirigami
 
 Kirigami.ScrollablePage {
     id: root
-    title: i18n("Logs")
+    title: qsTr("Logs")
 
     property string slug: ""
     property var model: null
@@ -23,12 +25,12 @@ Kirigami.ScrollablePage {
         RowLayout {
             Layout.fillWidth: true
             Kirigami.Heading {
-                text: i18n("Live logs")
+                text: qsTr("Live logs")
                 level: 3
             }
             Item { Layout.fillWidth: true }
             Controls.Button {
-                text: i18n("Clear")
+                text: qsTr("Clear")
                 onClicked: if (root.model) root.model.clear()
             }
         }
@@ -42,11 +44,16 @@ Kirigami.ScrollablePage {
             spacing: 0
 
             delegate: Controls.Label {
-                width: list.width
-                text: (model.stream === "stderr" ? "[err] " : "") + model.line
+                // Roles come from LogRingModel.roleNames(); required
+                // properties let qmllint resolve them under ComponentBehavior: Bound.
+                required property string stream
+                required property string line
+
+                width: ListView.view.width
+                text: (stream === "stderr" ? "[err] " : "") + line
                 font.family: "monospace"
-                wrapMode: Controls.Text.Wrap
-                color: model.stream === "stderr" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                wrapMode: Text.Wrap
+                color: stream === "stderr" ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
             }
 
             onCountChanged: {

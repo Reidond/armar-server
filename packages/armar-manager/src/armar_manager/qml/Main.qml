@@ -6,6 +6,7 @@
 
 import QtQuick
 import QtQuick.Controls as Controls
+import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Kirigami.ApplicationWindow {
@@ -13,38 +14,39 @@ Kirigami.ApplicationWindow {
     width: 1100
     height: 720
     visible: true
-    title: i18nc("@title:window", "Armar Manager")
+    title: qsTr("Armar Manager")
 
     globalDrawer: Kirigami.GlobalDrawer {
         id: drawer
-        title: i18n("Machines")
+        title: qsTr("Machines")
         actions: [
             Kirigami.Action {
-                text: i18n("Add machine…")
+                text: qsTr("Add machine…")
                 icon.name: "list-add-symbolic"
                 onTriggered: addMachineDialog.open()
             }
         ]
-        model: connectionManager.machines
+        // P3: per-machine entries are appended to `actions` from
+        // connectionManager.machines once a machine is connected.
     }
 
     pageStack.initialPage: Kirigami.Page {
-        title: i18n("Servers")
+        title: qsTr("Servers")
         ColumnLayout {
             anchors.fill: parent
             Kirigami.PlaceholderMessage {
-                text: i18n("No machine connected")
-                visible: connectionManager.machines.rowCount === 0
-                explanation: i18n("Add a managed machine from the drawer.")
+                text: qsTr("No machine connected")
+                visible: connectionManager.machines.rowCount === 0 // qmllint disable unqualified
+                explanation: qsTr("Add a managed machine from the drawer.")
             }
         }
     }
 
     // --- Add-Machine dialog ----------------------------------------------
-    Dialog {
+    Controls.Dialog {
         id: addMachineDialog
-        title: i18n("Add machine")
-        standardButtons: Dialog.Ok | Dialog.Cancel
+        title: qsTr("Add machine")
+        standardButtons: Controls.Dialog.Ok | Controls.Dialog.Cancel
         modal: true
         anchors.centerIn: parent
         width: Kirigami.Units.gridUnit * 18
@@ -53,24 +55,24 @@ Kirigami.ApplicationWindow {
             spacing: Kirigami.Units.smallSpacing
             Controls.TextField {
                 id: nameField
-                placeholderText: i18n("Name (e.g. home-server)")
+                placeholderText: qsTr("Name (e.g. home-server)")
                 Layout.fillWidth: true
             }
             Controls.TextField {
                 id: userField
-                placeholderText: i18n("SSH user")
+                placeholderText: qsTr("SSH user")
                 text: "armar"
                 Layout.fillWidth: true
             }
             Controls.TextField {
                 id: hostField
-                placeholderText: i18n("SSH host")
+                placeholderText: qsTr("SSH host")
                 Layout.fillWidth: true
             }
         }
 
         onAccepted: {
-            connectionManager.addMachine(
+            connectionManager.addMachine( // qmllint disable unqualified
                 nameField.text.trim(),
                 userField.text.trim(),
                 hostField.text.trim()

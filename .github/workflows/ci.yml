@@ -140,6 +140,27 @@ jobs:
       - uses: actions/checkout@v4
       - run: shellcheck docker/entrypoint.sh
 
+  qmllint:
+    name: qmllint (QML)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system Kirigami QML module
+        # Provides org.kde.kirigami (and pulls Qt6 runtime libs that
+        # PySide6's bundled qmllint also needs). scripts/qmllint.sh
+        # discovers it under /usr/lib/<triplet>/qt6/qml.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qml6-module-org-kde-kirigami
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv sync --locked
+      - run: ./scripts/qmllint.sh
+
   docker-build:
     name: Docker image build
     runs-on: ubuntu-latest
@@ -182,6 +203,7 @@ jobs:
       - wheel-smoke
       - dockerfile-lint
       - shellcheck
+      - qmllint
       - docker-build
       - actionlint
     if: always()

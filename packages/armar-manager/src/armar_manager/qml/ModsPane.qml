@@ -10,31 +10,33 @@ import org.kde.kirigami as Kirigami
 
 Kirigami.PlaceholderMessage {
     id: root
-    text: i18n("Mods management")
-    explanation: i18nc("@info", "Add Workshop URLs and resolve the dependency closure.")
+    text: qsTr("Mods management")
+    explanation: qsTr("Add Workshop URLs and resolve the dependency closure.")
 
     property string slug: ""
     property var client: null
     property var model: null
 
+    // PlaceholderMessage is itself a ColumnLayout, so this nested layout
+    // is layout-managed — use Layout.* sizing, not anchors.
     ColumnLayout {
-        anchors.fill: parent
+        Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
 
         Controls.TextField {
             id: urlField
-            placeholderText: i18n("Workshop URL or hex id")
+            placeholderText: qsTr("Workshop URL or hex id")
             Layout.fillWidth: true
         }
         Controls.Button {
-            text: i18n("Add")
+            text: qsTr("Add")
             enabled: urlField.text.length > 0 && root.client !== null
             onClicked: {
                 // P3: call into the bridge QObject
             }
         }
         Controls.Button {
-            text: i18n("Resolve dependencies")
+            text: qsTr("Resolve dependencies")
             enabled: root.client !== null
             onClicked: {
                 // P3: POST /api/v1/instances/{slug}/resolve

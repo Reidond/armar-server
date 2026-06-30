@@ -5,7 +5,8 @@
     "charliermarsh.ruff",      // Ruff linter + formatter (matches [tool.ruff])
     "detachhead.basedpyright", // basedpyright type checker (matches [tool.basedpyright])
     "tamasfe.even-better-toml",// pyproject.toml / *.toml editing
-    "exiasr.hadolint"          // Dockerfile linting (uses .hadolint.yaml)
+    "exiasr.hadolint",         // Dockerfile linting (uses .hadolint.yaml)
+    "theqtcompany.qt-qml"      // QML highlighting + qmlls language server (armar-manager UI)
   ],
   "unwantedRecommendations": [
     // basedpyright replaces Pylance; avoid duplicate diagnostics.

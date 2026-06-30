@@ -4,21 +4,20 @@
 // ConnectionManager-exposed QObject methods via property bindings.
 
 import QtQuick
-import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Kirigami.Page {
     id: root
-    title: i18n("Server")
+    title: qsTr("Server")
 
     property string slug: ""
 
     actions: [
         Kirigami.Action {
-            text: i18n("Refresh")
+            text: qsTr("Refresh")
             icon.name: "view-refresh-symbolic"
-            onTriggered: refresh()
+            onTriggered: root.refresh()
         }
     ]
 
@@ -34,10 +33,10 @@ Kirigami.Page {
             id: tabs
             Layout.fillWidth: true
             actions: [
-                Kirigami.Action { text: i18n("Overview"); checked: true },
-                Kirigami.Action { text: i18n("Mods") },
-                Kirigami.Action { text: i18n("Config") },
-                Kirigami.Action { text: i18n("Logs") }
+                Kirigami.Action { text: qsTr("Overview"); checked: true },
+                Kirigami.Action { text: qsTr("Mods") },
+                Kirigami.Action { text: qsTr("Config") },
+                Kirigami.Action { text: qsTr("Logs") }
             ]
         }
 
@@ -48,27 +47,27 @@ Kirigami.Page {
 
             // Overview
             Kirigami.PlaceholderMessage {
-                text: i18n("No status yet")
-                explanation: i18nc("@info", "Status will appear here when the agent is reachable.")
+                text: qsTr("No status yet")
+                explanation: qsTr("Status will appear here when the agent is reachable.")
                 visible: true
             }
 
             // Mods
             Kirigami.PlaceholderMessage {
-                text: i18n("Mods management")
-                explanation: i18nc("@info", "Coming in Phase P3.")
+                text: qsTr("Mods management")
+                explanation: qsTr("Coming in Phase P3.")
             }
 
             // Config
             Kirigami.PlaceholderMessage {
-                text: i18n("Config editor")
-                explanation: i18nc("@info", "Coming in Phase P3.")
+                text: qsTr("Config editor")
+                explanation: qsTr("Coming in Phase P3.")
             }
 
             // Logs
             Kirigami.PlaceholderMessage {
-                text: i18n("Live logs")
-                explanation: i18nc("@info", "Coming in Phase P2.")
+                text: qsTr("Live logs")
+                explanation: qsTr("Coming in Phase P2.")
             }
         }
     }

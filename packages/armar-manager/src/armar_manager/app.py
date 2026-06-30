@@ -41,6 +41,14 @@ def main(argv: list[str] | None = None) -> int:
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("connectionManager", manager)
     engine.rootContext().setContextProperty("machineStore", machine_store)
+    # Install an i18n shim as the QML context object. KDE's
+    # KLocalizedContext has no PySide6 binding, so we expose the same
+    # `i18n`/`i18nc` slots via a small QObject. Our QML uses `qsTr()`
+    # (the Qt Linguist path); the shim is here for kirigami-addons and
+    # any future `i18n()` call sites. See armar_manager.i18n.
+    from .i18n import I18nShim
+
+    engine.rootContext().setContextObject(I18nShim())
 
     qml = Path(__file__).parent / "qml" / "Main.qml"
     engine.load(QUrl.fromLocalFile(str(qml)))
