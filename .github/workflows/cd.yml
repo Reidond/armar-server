@@ -1,0 +1,197 @@
+name: CD
+
+on:
+  # Run only after CI completes successfully (push to main or v* tag).
+  # PR CI runs do not trigger CD — filtered by workflow_run.event == push.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+
+# One CD run per commit; do not cancel in-flight Flatpak builds.
+concurrency:
+  group: cd-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # create/update GitHub Releases + upload assets
+
+env:
+  UV_VERSION: "0.11.25"
+  FLATPAK_APP_ID: io.github.Reidond.ArmarManager
+
+jobs:
+  preview:
+    name: Preview release (rolling prerelease)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: "Guard: skip if HEAD is a tagged release"
+        run: |
+          if git tag --points-at HEAD | grep -q '^v'; then
+            echo "::error::HEAD is a v* tag; the release job handles this ref."
+            exit 1
+          fi
+
+      - name: Build wheels for armar-core + armar-cli + armar-agentd
+        run: |
+          for pkg in armar-core armar-cli armar-agentd; do
+            uv build --package "$pkg"
+          done
+
+      - name: Compute version
+        id: ver
+        run: |
+          uv run python -c "from importlib.metadata import version; print(version('armar-core'))" > .version
+          echo "version=$(cat .version)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Flatpak runtimes
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/flatpak
+            ~/.cache/flatpak-builder
+          key: flatpak-kde610-${{ runner.os }}-${{ hashFiles('flatpak/**', 'scripts/build-flatpak.sh') }}
+          restore-keys: |
+            flatpak-kde610-${{ runner.os }}-
+
+      - name: Install Flatpak toolchain + KDE runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends elfutils flatpak flatpak-builder
+          flatpak --user remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak --user install -y --noninteractive flathub \
+            org.kde.Platform//6.10 \
+            org.kde.Sdk//6.10 \
+            io.qt.PySide.BaseApp//6.10
+
+      - name: Build Flatpak bundle
+        run: |
+          chmod +x scripts/build-flatpak.sh
+          ./scripts/build-flatpak.sh
+
+      - name: Stage install.sh
+        run: cp install/install.sh dist/
+
+      - name: Update rolling `preview` GitHub prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: preview
+          name: "preview — ${{ steps.ver.outputs.version }}"
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/install.sh
+            dist/${{ env.FLATPAK_APP_ID }}.flatpak
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Release (GitHub artifacts)
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch != 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Build Python wheels (all published packages)
+        run: |
+          for pkg in armar-core armar-cli armar-agentd; do
+            uv build --package "$pkg"
+          done
+
+      - name: Compute version + checksums
+        id: meta
+        run: |
+          uv run python -c "from importlib.metadata import version; print(version('armar-core'))" > .version
+          sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
+          echo "version=$(cat .version)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Flatpak runtimes
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/flatpak
+            ~/.cache/flatpak-builder
+          key: flatpak-kde610-${{ runner.os }}-${{ hashFiles('flatpak/**', 'scripts/build-flatpak.sh') }}
+          restore-keys: |
+            flatpak-kde610-${{ runner.os }}-
+
+      - name: Install Flatpak toolchain + KDE runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends elfutils flatpak flatpak-builder
+          flatpak --user remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak --user install -y --noninteractive flathub \
+            org.kde.Platform//6.10 \
+            org.kde.Sdk//6.10 \
+            io.qt.PySide.BaseApp//6.10
+
+      - name: Build Flatpak bundle
+        run: |
+          chmod +x scripts/build-flatpak.sh
+          ./scripts/build-flatpak.sh
+
+      - name: Stage install.sh
+        run: cp install/install.sh dist/
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          TAG="$(git tag --points-at HEAD | grep -E '^v' | sort -V | tail -1)"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No v* tag at HEAD (${{ github.event.workflow_run.head_sha }})"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release with artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "${{ steps.tag.outputs.tag }} — ${{ steps.meta.outputs.version }}"
+          generate_release_notes: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+            dist/install.sh
+            dist/${{ env.FLATPAK_APP_ID }}.flatpak
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
