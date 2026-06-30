@@ -1,6 +1,13 @@
 """Transport: SSH tunnel, HTTP+SSE agent client, host-key TOFU."""
 
 from .client import AgentClient
+from .connection import (
+    DialResult,
+    Tunnel,
+    TunnelFactory,
+    dial_remote,
+    rotate_remote_token,
+)
 from .hostkeys import (
     HostKey,
     HostKeyMismatch,
@@ -21,6 +28,7 @@ __all__ = [
     "DEFAULT_AGENTD_PORT",
     "AgentClient",
     "AsyncSshTunnel",
+    "DialResult",
     "HostKey",
     "HostKeyMismatch",
     "HostKeyPinner",
@@ -28,7 +36,11 @@ __all__ = [
     "HttpAgentClient",
     "LocalConnection",
     "SystemSshTunnel",
+    "Tunnel",
     "TunnelError",
+    "TunnelFactory",
     "TunnelSpec",
     "default_known_hosts_path",
+    "dial_remote",
+    "rotate_remote_token",
 ]

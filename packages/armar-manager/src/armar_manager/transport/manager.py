@@ -29,13 +29,14 @@ from PySide6.QtCore import (
     Slot,
 )
 
-from armar_manager.secrets import Machine, MachineStore
+from armar_manager.secrets import Machine, MachineStore, SecretTokenStore
 from armar_server.contracts import PROTOCOL_VERSION, ConnectionState
 
 from .client import AgentClient
+from .connection import Tunnel, TunnelFactory, dial_remote, rotate_remote_token
 from .hostkeys import HostKeyPinner
-from .http import HttpAgentClient, LocalConnection
-from .tunnel import AsyncSshTunnel, TunnelError
+from .http import LocalConnection
+from .tunnel import TunnelError
 
 
 class MachineListModel(QAbstractListModel):
@@ -105,7 +106,7 @@ class MachineListModel(QAbstractListModel):
 @dataclass
 class _Conn:
     machine: Machine
-    tunnel: AsyncSshTunnel | None = None
+    tunnel: Tunnel | None = None
     client: AgentClient | None = None
     state: ConnectionState = ConnectionState.DISCONNECTED
     last_error: str | None = None
@@ -126,11 +127,15 @@ class ConnectionManager(QObject):
         *,
         machine_store: MachineStore,
         host_key_pinner: HostKeyPinner,
+        token_store: SecretTokenStore | None = None,
+        tunnel_factory: TunnelFactory | None = None,
         max_backoff_s: float = 30.0,
     ) -> None:
         super().__init__()
         self._store = machine_store
         self._pinner = host_key_pinner
+        self._token_store = token_store if token_store is not None else SecretTokenStore()
+        self._tunnel_factory = tunnel_factory
         self._max_backoff_s = max_backoff_s
         self._conns: dict[str, _Conn] = {}
         self._pending_tasks: set[asyncio.Task[None]] = set()
@@ -176,6 +181,30 @@ class ConnectionManager(QObject):
         self._pending_tasks.add(task)
         task.add_done_callback(self._pending_tasks.discard)
 
+    @Slot(str)
+    def rotateToken(self, name: str) -> None:
+        """Rotate a machine's agent token, then reconnect with the new one."""
+
+        async def _run() -> None:
+            conn = self._conns.get(name)
+            if conn is None or conn.tunnel is None:
+                return
+            try:
+                await rotate_remote_token(
+                    conn.machine, token_store=self._token_store, tunnel=conn.tunnel
+                )
+            except Exception as exc:
+                conn.last_error = str(exc)
+                return
+            # The running agent now expects the new token; re-dial so the
+            # client picks it up from the store.
+            await self._teardown(conn)
+            await self._dial(conn)
+
+        task = asyncio.create_task(_run())
+        self._pending_tasks.add(task)
+        task.add_done_callback(self._pending_tasks.discard)
+
     async def add_remote(self, name: str, ssh_user: str, ssh_host: str) -> None:
         """Add a machine and immediately dial it (background task)."""
         self.addMachine(name, ssh_user, ssh_host)
@@ -185,43 +214,45 @@ class ConnectionManager(QObject):
         try:
             self._set_state(conn, ConnectionState.CONNECTING)
             if conn.machine.uds_path:
-                # Local machine: no SSH.
+                # Local machine: no SSH, UDS with the token disabled.
                 conn.client = LocalConnection(uds_path=conn.machine.uds_path)
+                info = await conn.client.info()
+                if info.protocol_version != PROTOCOL_VERSION:
+                    raise TunnelError(
+                        f"protocol version mismatch: agentd={info.protocol_version} "
+                        f"manager={PROTOCOL_VERSION}"
+                    )
             else:
-                # Remote: SSH local-forward + token.
-                tunnel = AsyncSshTunnel(
-                    ssh_user=conn.machine.ssh_user,
-                    ssh_host=conn.machine.ssh_host,
-                    ssh_port=conn.machine.ssh_port,
-                )
-                spec = await tunnel.open()
-                # TODO: load token from Secret Service.
-                # For P1, allow unauthenticated local connect; the
-                # token requirement is enforced by the agentd on /info.
-                conn.client = HttpAgentClient(
-                    base_url=f"http://127.0.0.1:{spec.local_port}",
-                    token=None,
-                )
-                conn.tunnel = tunnel
-            info = await conn.client.info()
-            if info.protocol_version != PROTOCOL_VERSION:
-                raise TunnelError(
-                    f"protocol version mismatch: agentd={info.protocol_version} "
-                    f"manager={PROTOCOL_VERSION}"
-                )
+                # Remote: SSH local-forward; the token is fetched once over
+                # SSH-exec and persisted to the Secret Service (see
+                # transport/connection.py).
+                if self._tunnel_factory is not None:
+                    result = await dial_remote(
+                        conn.machine,
+                        token_store=self._token_store,
+                        tunnel_factory=self._tunnel_factory,
+                    )
+                else:
+                    result = await dial_remote(conn.machine, token_store=self._token_store)
+                conn.client = result.client
+                conn.tunnel = result.tunnel
             conn.backoff_s = 1.0
             self._set_state(conn, ConnectionState.CONNECTED)
         except Exception as exc:
+            await self._teardown(conn)
             conn.last_error = str(exc)
-            with contextlib.suppress(Exception):
-                if conn.client is not None:
-                    await conn.client.close()
-                if conn.tunnel is not None:
-                    await conn.tunnel.close()
-            conn.client = None
-            conn.tunnel = None
             self._set_state(conn, ConnectionState.FAILED)
             await self._schedule_reconnect(conn)
+
+    async def _teardown(self, conn: _Conn) -> None:
+        with contextlib.suppress(Exception):
+            if conn.client is not None:
+                await conn.client.close()
+        with contextlib.suppress(Exception):
+            if conn.tunnel is not None:
+                await conn.tunnel.close()
+        conn.client = None
+        conn.tunnel = None
 
     async def _schedule_reconnect(self, conn: _Conn) -> None:
         """Reconnect with exponential backoff."""

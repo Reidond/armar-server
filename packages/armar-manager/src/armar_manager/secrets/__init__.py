@@ -15,6 +15,13 @@ from pathlib import Path
 
 import tomli_w
 
+from .tokens import (
+    InMemoryTokenBackend,
+    KeyringTokenBackend,
+    SecretTokenStore,
+    TokenBackend,
+)
+
 MACHINES_FILE = "armar-manager/machines.toml"
 
 
@@ -80,7 +87,16 @@ class MachineStore:
         tmp.replace(self._path)
 
 
-__all__ = ["MACHINES_FILE", "Machine", "MachineStore", "default_machines_path"]
+__all__ = [
+    "MACHINES_FILE",
+    "InMemoryTokenBackend",
+    "KeyringTokenBackend",
+    "Machine",
+    "MachineStore",
+    "SecretTokenStore",
+    "TokenBackend",
+    "default_machines_path",
+]
 
 
 # Touch so the path isn't dead.

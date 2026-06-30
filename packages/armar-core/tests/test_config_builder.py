@@ -42,16 +42,16 @@ def test_rcon_enabled() -> None:
     app = AppConfig(
         scenario_id="{X}Missions/c.conf",
         rcon_enabled=True,
-        rcon_password="test-rcon-pw",  # noqa: S106 — test fixture
+        rcon_password="test-rcon-pw",
         rcon_port=19999,
     )
     sc = build_server_config(app, LockFile())
     assert sc.rcon is not None
-    assert sc.rcon.password == "test-rcon-pw"  # noqa: S105 — test fixture
+    assert sc.rcon.password == "test-rcon-pw"
 
     data = json.loads(render_server_config(sc))
     assert data["rcon"]["port"] == 19999
-    assert data["rcon"]["password"] == "test-rcon-pw"  # noqa: S105 — test fixture
+    assert data["rcon"]["password"] == "test-rcon-pw"
 
 
 def test_game_properties_passthrough() -> None:

@@ -46,7 +46,7 @@ extend-immutable-calls = ["typer.Argument", "typer.Option"]
 "packages/armar-agentd/**" = ["S104"]  # bind addresses are loopback
 "packages/armar-manager/**" = ["S104"]
 "packages/armar-core/tests/**" = ["S101"]  # `assert` is the whole point of tests
-"packages/*/tests/**" = ["S101"]
+"packages/*/tests/**" = ["S101", "S105", "S106"]  # tests use dummy tokens/passwords
 "tests/**" = ["S101"]
 
 [tool.basedpyright]

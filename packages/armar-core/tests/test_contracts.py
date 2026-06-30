@@ -154,7 +154,7 @@ def test_app_config_update_uses_secret_str() -> None:
     )
     dumped = update.model_dump()
     # SecretStr is serialised as '**********' (or the configured format).
-    assert dumped["secrets"]["rcon_password"] != "topsecret"  # noqa: S105 — test fixture
+    assert dumped["secrets"]["rcon_password"] != "topsecret"
 
 
 def test_int_enums_have_distinct_int_values() -> None:
