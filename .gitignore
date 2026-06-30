@@ -17,3 +17,7 @@ __pycache__/
 
 # OS / editor
 .DS_Store
+
+# Ephemeral binaries downloaded by download-actionlint.bash (CI/agents).
+# Prefer: uv run --group lint actionlint
+/actionlint
