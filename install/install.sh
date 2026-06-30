@@ -14,7 +14,7 @@ set -eu
 VERSION="${ARMAR_VERSION:-}"
 HOME_PREFIX="${ARMAR_HOME:-$HOME/.local}"
 BIN_DIR="${ARMAR_BIN:-$HOME_PREFIX/bin}"
-GITHUB_REPO="${ARMAR_GITHUB_REPO:-anomalyco/armar-server}"
+GITHUB_REPO="${ARMAR_GITHUB_REPO:-Reidond/armar-server}"
 
 log() {
     printf 'armar-install: %s\n' "$*"

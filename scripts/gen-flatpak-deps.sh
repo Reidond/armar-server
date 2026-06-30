@@ -65,6 +65,6 @@ p.write_text(json.dumps(data, indent=4) + '\n')
 done
 
 rm -f "${OUT_DIR}/.runtime-reqs.txt"
-echo "done. next: open flatpak/io.github.anomalyco.ArmarManager.yaml"
+echo "done. next: open flatpak/io.github.Reidond.ArmarManager.yaml"
 echo "      and list the per-arch JSONs in the 'modules:' section"
 echo "      (one module per arch; flatpak-builder picks the right one)."

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.anomalyco.ArmarManager</id>
+  <id>io.github.Reidond.ArmarManager</id>
   <name>Armar Manager</name>
   <summary>Manage modded Arma Reforger servers</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <developer id="io.github.anomalyco">
-    <name>Armar Server contributors</name>
+  <developer id="io.github.reidond">
+    <name>Reidond</name>
   </developer>
   <description>
     <p>
@@ -22,10 +22,10 @@
       URLs and pinned into a lockfile for reproducible runs.
     </p>
   </description>
-  <launchable type="desktop-id">io.github.anomalyco.ArmarManager.desktop</launchable>
+  <launchable type="desktop-id">io.github.Reidond.ArmarManager.desktop</launchable>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/anomalyco/armar-server/main/docs/screenshots/server-list.png</image>
+      <image>https://raw.githubusercontent.com/Reidond/armar-server/main/docs/screenshots/server-list.png</image>
       <caption>Server list across multiple machines</caption>
     </screenshot>
   </screenshots>
@@ -34,9 +34,9 @@
     <color type="primary" scheme_preference="light">#3584e4</color>
     <color type="primary" scheme_preference="dark">#1a5fb4</color>
   </branding>
-  <url type="homepage">https://github.com/anomalyco/armar-server</url>
-  <url type="bugtracker">https://github.com/anomalyco/armar-server/issues</url>
-  <url type="vcs-browser">https://github.com/anomalyco/armar-server</url>
+  <url type="homepage">https://github.com/Reidond/armar-server</url>
+  <url type="bugtracker">https://github.com/Reidond/armar-server/issues</url>
+  <url type="vcs-browser">https://github.com/Reidond/armar-server</url>
   <releases>
     <release version="0.1.0" date="2026-01-01">
       <description>
