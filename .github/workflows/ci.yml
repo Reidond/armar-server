@@ -29,7 +29,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
       - run: uv run --locked ruff check --output-format=github .
 
   format:
@@ -42,7 +42,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
       - run: uv run --locked ruff format --check --diff .
 
   typecheck:
@@ -55,8 +55,8 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
-      - run: uv run --locked basedpyright src tests
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv run --locked basedpyright
 
   test:
     name: Tests (py${{ matrix.python-version }})
@@ -72,7 +72,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
           python-version: ${{ matrix.python-version }}
       - run: uv run --locked --python ${{ matrix.python-version }} pytest -q
 
@@ -86,26 +86,47 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: "**/pyproject.toml"
       - run: uv lock --check
 
   build:
-    name: Build & smoke-test wheel
+    name: Build wheels
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - uses: astral-sh/setup-uv@v6
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
-      - run: uv build
-      - name: Install the built wheel in a clean env and run the CLI
-        run: |
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv build --all-packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: dist/*.whl
+
+  wheel-smoke:
+    name: Wheel smoke (armar-core + armar-cli)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: |
           uv venv /tmp/smoke
-          uv pip install --python /tmp/smoke/bin/python dist/*.whl
+          uv pip install --python /tmp/smoke/bin/python --find-links dist armar-core armar-cli
           /tmp/smoke/bin/armar --help
+          /tmp/smoke/bin/armar --version
 
   dockerfile-lint:
     name: Hadolint
@@ -124,7 +145,29 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck docker/entrypoint.sh
+      - run: shellcheck docker/entrypoint.sh install/install.sh scripts/gen-flatpak-deps.sh scripts/build-flatpak.sh scripts/qmllint.sh
+
+  qmllint:
+    name: qmllint (QML)
+    # ubuntu-latest (24.04 Noble) ships KF5 Kirigami only; KF6 is on Fedora.
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:42
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system Kirigami QML module
+        # Provides org.kde.kirigami (and pulls Qt6 runtime libs that
+        # PySide6's bundled qmllint also needs). scripts/qmllint.sh
+        # discovers it under /usr/lib64/qt6/qml on Fedora.
+        run: dnf install -y --setopt=install_weak_deps=False kf6-kirigami
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv sync --locked
+      - run: ./scripts/qmllint.sh
 
   docker-build:
     name: Docker image build
@@ -165,8 +208,10 @@ jobs:
       - test
       - lock
       - build
+      - wheel-smoke
       - dockerfile-lint
       - shellcheck
+      - qmllint
       - docker-build
       - actionlint
     if: always()

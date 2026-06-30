@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.Reidond.ArmarManager</id>
+  <name>Armar Manager</name>
+  <summary>Manage modded Arma Reforger servers</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.reidond">
+    <name>Reidond</name>
+  </developer>
+  <description>
+    <p>
+      Armar Manager is a Kirigami/PySide6 desktop application that manages
+      N modded Arma Reforger dedicated servers across M machines. It speaks
+      HTTP and Server-Sent Events to a small armar-agentd daemon that runs
+      on each managed machine, tunnelled over SSH so no public ports are
+      exposed.
+    </p>
+    <p>
+      Authentication uses your existing SSH agent; the manager never
+      reaches into the host filesystem. Mods are resolved from Workshop
+      URLs and pinned into a lockfile for reproducible runs.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.Reidond.ArmarManager.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/Reidond/armar-server/main/docs/screenshots/server-list.png</image>
+      <caption>Server list across multiple machines</caption>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1" />
+  <branding>
+    <color type="primary" scheme_preference="light">#3584e4</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+  <url type="homepage">https://github.com/Reidond/armar-server</url>
+  <url type="bugtracker">https://github.com/Reidond/armar-server/issues</url>
+  <url type="vcs-browser">https://github.com/Reidond/armar-server</url>
+  <releases>
+    <release version="0.1.0" date="2026-01-01">
+      <description>
+        <p>Initial release with the multi-server instance model, the
+        armar-agentd fleet daemon, and the Kirigami desktop UI shell.</p>
+      </description>
+    </release>
+  </releases>
+</component>

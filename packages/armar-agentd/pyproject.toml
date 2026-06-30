@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+name = "armar-agentd"
+description = "Fleet agent: HTTP+SSE API that runs on each managed machine and drives rootless podman."
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "armar-core[agentd]>=0.0.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "sse-starlette>=2.0.0",
+    "pydantic>=2",
+    "pydantic-settings>=2.14.2",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+armar-agentd = "armar_agentd.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/armar_agentd"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+fallback-version = "0.0.0"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { git = { commit = true, tags = true } },
+]

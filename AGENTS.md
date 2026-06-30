@@ -24,24 +24,40 @@ uv run ruff format .             # format
 uv run basedpyright src tests    # type-check
 uv run pytest                    # tests (offline; no network/containers)
 uv run armar --help              # the CLI entry point
+./scripts/qmllint.sh             # lint armar-manager QML (needs system Kirigami)
 ```
+
+The QML lint needs the system `org.kde.kirigami` QML module (Fedora: `kf6-kirigami`;
+Debian/Ubuntu: `qml6-module-org-kde-kirigami`). Our QML uses `qsTr()` (Qt
+Linguist) for localization, so no KLocalizedContext binding is required;
+the `I18nShim` (installed as the QML context object in `app.py`) is
+there for third-party C++ components that still call `i18n()`. Python
+context properties (e.g. `connectionManager`, `machineStore`) are
+silenced per-site with inline `// qmllint disable unqualified`
+directives — keep `UnqualifiedAccess` blocking so new unqualified
+bugs still fail.
 
 Never use `pip`, `poetry`, `pyenv`, or manual venv activation — uv only (`uv add`, `uv sync`,
 `uv run`, `uv lock`). See the `uv-python-tooling` skill.
 
 ### Architecture
 
-Feature-sliced package under `src/armar_server/`:
+Feature-sliced packages under `packages/`:
 
-- `config/` — `models.py` (`AppConfig` = friendly `server.toml`; `ServerConfig` + nested
-  `Game`/`Rcon`/`A2S`/`GameProperties` = the Reforger JSON, **camelCase field names map 1:1 to JSON
-  keys**; `LockFile`), `settings.py` (`AppSettings`, all tunables), `loader.py` (TOML/lock IO + JSON render).
-- `workshop/` — `client.py` (`WorkshopClient` **Protocol** + `HttpWorkshopClient`; `parse_mod_id`),
-  `parser.py` (extract `__NEXT_DATA__` → `Asset`), `resolver.py` (recursive dependency closure with
-  cache + cycle guard, pins latest versions).
-- `server/` — `config_builder.py`, `steamcmd.py`, `runtime.py` (`ContainerRuntime` **Protocol** +
-  Podman/Docker; `build_run_argv` is pure), `launcher.py` (pure `RunSpec` builders), `scenarios.py`,
-  `systemd.py`.
+- `armar-core/src/armar_server/` — `config/` (`models.py` — `AppConfig` = friendly `server.toml`;
+  `ServerConfig` + nested `Game`/`Rcon`/`A2S`/`GameProperties` = the Reforger JSON, **camelCase field
+  names map 1:1 to JSON keys**; `LockFile`. `settings.py` = `AppSettings` (all tunables).
+  `loader.py` = TOML/lock IO + JSON render), `workshop/` (`client.py` — `WorkshopClient`
+  **Protocol** + `HttpWorkshopClient`; `parse_mod_id`; `parser.py` extracts `__NEXT_DATA__` → `Asset`;
+  `resolver.py` does the recursive dependency closure with cache + cycle guard, pins latest versions),
+  `server/` (`config_builder.py`, `steamcmd.py`, `runtime.py` — `ContainerRuntime` **Protocol** +
+  Podman/Docker; `build_run_argv` is pure, `launcher.py` = pure `RunSpec` builders, `scenarios.py`,
+  `systemd.py`), `contracts/` (shared wire-contract DTOs + `IntEnum` state enums +
+  `PROTOCOL_VERSION`, used by `armar-agentd` and `armar-manager`).
+- `armar-cli/src/armar_cli/` — owns the `armar` script (`armar_server.cli:app`), depends on
+  `armar-core[cli]`.
+- `armar-agentd/src/armar_agentd/` — FastAPI service on each managed machine.
+- `armar-manager/src/armar_manager/` — Kirigami/PySide6 desktop app.
 - `cli.py` — thin Typer handlers that wire settings + config to services and inject dependencies.
 - `docker/` — `Dockerfile` (Ubuntu 22.04 + SteamCMD + libs) and `entrypoint.sh`.
 
@@ -55,9 +71,9 @@ Conventions (see `python-best-practices`, `vertical-slice`, `test-conventions` s
 
 ### Testing
 
-- Mock external services at the **DI boundary**: pass `FakeWorkshopClient` (see `tests/factories.py`)
-  or use `pytest-httpx` for `HttpWorkshopClient`; assert `build_run_argv` / `RunSpec` directly instead
-  of spawning containers.
+- Mock external services at the **DI boundary**: pass `FakeWorkshopClient` (see
+  `packages/armar-core/tests/factories.py`) or use `pytest-httpx` for `HttpWorkshopClient`; assert
+  `build_run_argv` / `RunSpec` directly instead of spawning containers.
 - No live workshop calls and no containers in the test suite — use the saved-blob factories.
 - Prefer integration tests covering happy path + errors + edge cases together. No perf/load tests unless asked.
 
@@ -117,6 +133,7 @@ SKILL CREATION                          PERIODIC (weekly/biweekly)
 2. **Learnings extraction** (all tasks) — `.claude/skills/task-learnings/SKILL.md`
 3. **Documentation updates** — keep `README.md` + this file in sync with the CLI/config.
 4. **Re-run the gate** — `uv run ruff check . && uv run basedpyright src tests && uv run pytest`.
+   When QML changed, also run `./scripts/qmllint.sh`.
 
 ### Learnings system
 

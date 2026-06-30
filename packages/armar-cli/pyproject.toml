@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+name = "armar-cli"
+description = "The `armar` command-line interface — wraps armar-core[cli]."
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "armar-core[cli]>=0.0.0",
+]
+
+[project.scripts]
+armar = "armar_server.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["armar_cli"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+fallback-version = "0.0.0"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { git = { commit = true, tags = true } },
+]

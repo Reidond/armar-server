@@ -1,0 +1,1 @@
+"""`armar-manager` package marker."""

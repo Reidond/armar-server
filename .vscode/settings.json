@@ -28,6 +28,18 @@
     "editor.defaultFormatter": "tamasfe.even-better-toml"
   },
 
+  // ---- QML: qmlls language server (Qt Qml extension, theqtcompany.qt-qml) ----
+  // Use the qmlls shipped in the uv venv's PySide6 so the editor matches
+  // scripts/qmllint.sh. pyside6-qmlls already resolves PySide6's bundled Qt
+  // modules; we only add the system org.kde.kirigami import path. Diagnostics
+  // (incl. inline `// qmllint disable` directives) come from .qmllint.ini.
+  "qt-qml.qmlls.customExePath": "${workspaceFolder}/.venv/bin/pyside6-qmlls",
+  "qt-qml.qmlls.useNoCMakeCalls": true,
+  "qt-qml.qmlls.additionalImportPaths": [
+    // Fedora; on Debian/Ubuntu use /usr/lib/<triplet>/qt6/qml instead.
+    "/usr/lib64/qt6/qml"
+  ],
+
   // ---- Workspace hygiene ----
   "python.analysis.autoImportCompletions": true,
   "files.exclude": {
