@@ -3,7 +3,7 @@ name: CD
 on:
   push:
     branches: [main]   # → preview (rolling prerelease on GH Releases)
-    tags: ['v*']       # → release (PyPI + GitHub Release)
+    tags: ['v*']       # → release (GitHub Release artifacts only — no PyPI/Flathub)
   workflow_dispatch:
 
 # Mutual exclusion: a single push updates exactly one ref kind, and the
@@ -13,11 +13,11 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
-  id-token: write   # PyPI Trusted Publishing
+  contents: write   # create/update GitHub Releases + upload assets
 
 env:
   UV_VERSION: "0.11.25"
+  FLATPAK_APP_ID: io.github.Reidond.ArmarManager
 
 jobs:
   preview:
@@ -43,14 +43,17 @@ jobs:
             exit 1
           fi
 
-      - name: Build wheels for armar-core + armar-cli
-        run: uv build --package armar-core --package armar-cli
+      - name: Build wheels for armar-core + armar-cli + armar-agentd
+        run: uv build --package armar-core --package armar-cli --package armar-agentd
 
       - name: Compute version
         id: ver
         run: |
           uv run python -c "from importlib.metadata import version; print(version('armar-core'))" > .version
           echo "version=$(cat .version)" >> "$GITHUB_OUTPUT"
+
+      - name: Stage install.sh
+        run: cp install/install.sh dist/
 
       - name: Update rolling `preview` GitHub prerelease
         uses: softprops/action-gh-release@v2
@@ -59,16 +62,15 @@ jobs:
           name: "preview — ${{ steps.ver.outputs.version }}"
           prerelease: true
           generate_release_notes: true
-          files: dist/*.whl dist/*.tar.gz
+          files: dist/*.whl dist/*.tar.gz dist/install.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
-    name: Release (PyPI + GitHub Release)
+    name: Release (GitHub artifacts)
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: release
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,9 +82,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
 
-      - name: Build wheels for all published packages
-        run: |
-          uv build --package armar-core --package armar-cli --package armar-agentd
+      - name: Build Python wheels (all published packages)
+        run: uv build --package armar-core --package armar-cli --package armar-agentd
 
       - name: Compute version + checksums
         id: meta
@@ -91,15 +92,36 @@ jobs:
           sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
           echo "version=$(cat .version)" >> "$GITHUB_OUTPUT"
 
-      # Publishes every built distribution in dist/ (armar-core, armar-cli,
-      # armar-agentd) in lockstep. skip-existing makes a partial re-run safe.
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Cache Flatpak runtimes
+        uses: actions/cache@v4
         with:
-          packages-dir: dist
-          skip-existing: true
+          path: |
+            ~/.local/share/flatpak
+            ~/.cache/flatpak-builder
+          key: flatpak-kde610-${{ runner.os }}-${{ hashFiles('flatpak/**', 'scripts/build-flatpak.sh') }}
+          restore-keys: |
+            flatpak-kde610-${{ runner.os }}-
 
-      - name: Create GitHub Release with notes
+      - name: Install Flatpak toolchain + KDE runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder
+          flatpak --user remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak --user install -y --noninteractive flathub \
+            org.kde.Platform//6.10 \
+            org.kde.Sdk//6.10 \
+            io.qt.PySide.BaseApp//6.10
+
+      - name: Build Flatpak bundle
+        run: |
+          chmod +x scripts/build-flatpak.sh
+          ./scripts/build-flatpak.sh
+
+      - name: Stage install.sh
+        run: cp install/install.sh dist/
+
+      - name: Create GitHub Release with artifacts
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -109,5 +131,7 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
             dist/SHA256SUMS
+            dist/install.sh
+            dist/${{ env.FLATPAK_APP_ID }}.flatpak
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

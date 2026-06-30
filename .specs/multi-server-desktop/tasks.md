@@ -27,6 +27,12 @@
     `install.sh` bootstraps `uv` (pinned via `UV_VERSION`) when missing and fails clearly when no
     container runtime exists; all shell scripts + both workflows are now `shellcheck`/`actionlint`
     clean (fixed a YAML-invalid step name and the bogus `package-dir` PyPI input in `cd.yml`).
+- **Distribution: GitHub Releases only (no PyPI / no Flathub).** `cd.yml` builds the Flatpak on
+  `v*` tags via `scripts/build-flatpak.sh` and attaches
+  `io.github.Reidond.ArmarManager.flatpak` + wheels + `SHA256SUMS` + `install.sh` to the tag
+  release. Preview on `main` publishes wheels + `install.sh` to the rolling `preview` prerelease.
+  `install.sh` installs `armar-agentd` from release wheels (`--find-links`), not PyPI. Manifest
+  uses a `dir` source so CI always packages the checked-out tree.
 - **Flatpak `keyring` vendoring: DONE.** `flatpak/python3-deps.*.json` regenerated to include the
   keyring closure (`keyring`, `secretstorage`, `jeepney`, `jaraco.classes/context/functools`,
   `more-itertools`) so Secret Service works inside the sandbox. `gen-flatpak-deps.sh` now drops

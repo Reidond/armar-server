@@ -94,9 +94,12 @@ case "$(uname -sm)" in
 esac
 log "platform: linux/$PLATFORM"
 
-# Install the agent as an isolated, easily-upgraded uv tool.
-log "installing via uv tool"
-uv tool install "armar-agentd==$PKG_VERSION" --with armar-core || die "uv tool install failed"
+# Install the agent as an isolated, easily-upgraded uv tool from the GitHub
+# Release wheels (no PyPI). `install.sh` is attached to every tag release.
+RELEASE_URL="https://github.com/${GITHUB_REPO}/releases/download/${VERSION}"
+log "installing from GitHub release ${RELEASE_URL}"
+uv tool install "armar-agentd==${PKG_VERSION}" --with armar-core \
+    --find-links "${RELEASE_URL}" || die "uv tool install failed (are release wheels published?)"
 
 # Persist the tool bin directory hint for the user.
 case :$PATH: in

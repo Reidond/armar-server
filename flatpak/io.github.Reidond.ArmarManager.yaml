@@ -73,10 +73,9 @@ modules:
   - python3-deps.x86_64.json
   - python3-deps.aarch64.json
 
-  # 2) The app itself, built from a pinned git source. The human
-  #    maintainer must update the `commit:` and bump `release` on
-  #    each Flathub update; the x-checker-data block lets
-  #    flatpak-external-data-checker open update PRs automatically.
+  # 2) The app itself, built from the repo checkout. The `dir` source keeps
+  #    local and CI/tag builds in sync (no pinned git commit to bump).
+  #    A Flathub fork would swap this for a pinned `type: git` source.
   - name: armar-manager
     buildsystem: simple
     build-commands:
@@ -88,11 +87,5 @@ modules:
       - install -Dm644 flatpak/io.github.Reidond.ArmarManager.svg
                    /app/share/icons/hicolor/scalable/apps/io.github.Reidond.ArmarManager.svg
     sources:
-      - type: git
-        url: https://github.com/Reidond/armar-server.git
-        # Pinned to the v0.1.0 commit. Maintainer: bump on each release.
-        commit: aaa483c4a5583cc27134f04248ff93bac78315e8
-        tag: v0.1.0
-        x-checker-data:
-          type: git
-          tag-pattern: '^v([\d.]+)$'
+      - type: dir
+        path: ..

@@ -18,6 +18,24 @@
   - drop the dead sha-tool check;
   - stay idempotent and `shellcheck`-clean.
 
+## Distribution model (GitHub Releases only)
+
+There is **no PyPI publish** and **no Flathub submission** from this repo. CD attaches
+everything to GitHub Releases:
+
+| Trigger | Artifacts on the release |
+|---------|--------------------------|
+| push `main` | rolling **`preview`** prerelease: Python wheels + `install.sh` |
+| tag `v*` | **tag release**: wheels + `SHA256SUMS` + `install.sh` + **`io.github.Reidond.ArmarManager.flatpak`** |
+
+- **`scripts/build-flatpak.sh`** builds the Flatpak bundle from the checked-out tree (manifest
+  uses a `dir` source — no pinned git commit to bump).
+- **`install/install.sh`** installs `armar-agentd` from the release wheels via
+  `uv tool install --find-links https://github.com/…/releases/download/<tag>/`.
+- Users install the desktop app with:
+  `flatpak install --user ./io.github.Reidond.ArmarManager.flatpak`
+  (needs the Flathub runtime remote: `flatpak remote-add --if-not-exists flathub …`).
+
 ## Done after the initial slice
 
 - **Flatpak `keyring` vendoring**: `flatpak/python3-deps.*.json` regenerated via
