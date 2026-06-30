@@ -119,3 +119,25 @@ def test_hostkey_rejection_raises(tmp_path: Path) -> None:
         pinner.verify_or_record(key, confirm=lambda _: False)
     # Nothing was recorded.
     assert pinner.lookup("host-a", 22) is None
+
+
+def test_default_known_hosts_path_honors_xdg_data_home(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from armar_manager.transport.hostkeys import default_known_hosts_path
+
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+    monkeypatch.delenv("HOME", raising=False)
+    path = default_known_hosts_path()
+    assert path == tmp_path / "xdg" / "armar-manager" / "known_hosts"
+
+
+def test_default_known_hosts_path_falls_back_to_home(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from armar_manager.transport.hostkeys import default_known_hosts_path
+
+    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    path = default_known_hosts_path()
+    assert path == tmp_path / "home" / ".local" / "share" / "armar-manager" / "known_hosts"

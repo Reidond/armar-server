@@ -4,17 +4,27 @@ On the **first** connect, the host key is recorded in an app-owned
 known_hosts file. On subsequent connects, the key is matched; if it
 changes, a *hard fail* is raised (potential MITM). Unknown keys prompt
 the user to confirm before being recorded.
+
+Path resolution:
+
+- Honor ``$XDG_DATA_HOME`` first, then fall back to ``~/.local/share``
+  (so the Flatpak sandbox can override the location).
+- Inside a Flatpak, ``$HOME`` maps to ``~/.var/app/<id>/`` and the
+  per-app data dir is therefore ``~/.var/app/<id>/data/armar-manager`` —
+  no extra ``--filesystem`` permission is needed.
 """
 
 from __future__ import annotations
 
 import contextlib
 import hashlib
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
-#: App-owned known_hosts file under XDG_DATA_HOME.
-APP_KNOWN_HOSTS = Path.home() / ".local" / "share" / "armar-manager" / "known_hosts"
+#: App-owned known_hosts file. Resolved at instance time via
+#: :py:func:`default_known_hosts_path` so ``$XDG_DATA_HOME`` is honored.
+APP_KNOWN_HOSTS_NAME = "armar-manager/known_hosts"
 
 
 class HostKeyMismatch(RuntimeError):
@@ -57,20 +67,30 @@ def _parse_line(line: str) -> HostKey | None:
 
 
 def fingerprint_public_key(key_bytes: bytes, algorithm: str) -> str:
-    """Compute a SHA-256 base64-ish fingerprint from the raw key bytes.
-
-    The exact format matches what ssh-keygen emits, but we accept
-    a pre-computed fingerprint for tests so the bit-level format
-    is decoupled from the verification logic.
-    """
+    """Compute a SHA-256 base64-ish fingerprint from the raw key bytes."""
+    _ = algorithm
     return hashlib.sha256(key_bytes).hexdigest()
+
+
+def default_known_hosts_path() -> Path:
+    """Return the per-user known_hosts path, honoring ``$XDG_DATA_HOME``.
+
+    Resolves to ``$XDG_DATA_HOME/armar-manager/known_hosts`` if set,
+    otherwise ``~/.local/share/armar-manager/known_hosts``. Inside a
+    Flatpak, ``$HOME`` is ``~/.var/app/<id>/`` and the data dir is
+    therefore under the per-app ``data/`` — no ``--filesystem`` hole
+    is needed.
+    """
+    xdg = os.environ.get("XDG_DATA_HOME", "").strip()
+    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / APP_KNOWN_HOSTS_NAME
 
 
 class HostKeyPinner:
     """Trust-on-first-use host-key pin store."""
 
-    def __init__(self, store_path: Path = APP_KNOWN_HOSTS) -> None:
-        self._path = store_path
+    def __init__(self, store_path: Path | None = None) -> None:
+        self._path = store_path or default_known_hosts_path()
 
     @property
     def path(self) -> Path:
@@ -127,10 +147,11 @@ class HostKeyPinner:
 
 
 __all__ = [
-    "APP_KNOWN_HOSTS",
+    "APP_KNOWN_HOSTS_NAME",
     "HostKey",
     "HostKeyMismatch",
     "HostKeyPinner",
     "HostKeyRejected",
+    "default_known_hosts_path",
     "fingerprint_public_key",
 ]

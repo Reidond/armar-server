@@ -1,15 +1,28 @@
-"""`machines.toml` (non-secret) + Secret Service (token) storage."""
+"""`machines.toml` (non-secret) + Secret Service (token) storage.
+
+The non-secret registry lives under ``$XDG_DATA_HOME`` so the Flatpak
+sandbox can use it without any ``--filesystem`` permission: the
+per-app data dir is automatically mapped under ``~/.var/app/<id>/``.
+"""
 
 from __future__ import annotations
 
 import contextlib
+import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 import tomli_w
 
-MACHINES_PATH = Path.home() / ".local" / "share" / "armar-manager" / "machines.toml"
+MACHINES_FILE = "armar-manager/machines.toml"
+
+
+def default_machines_path() -> Path:
+    """Return the per-user machines.toml path, honoring ``$XDG_DATA_HOME``."""
+    xdg = os.environ.get("XDG_DATA_HOME", "").strip()
+    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / MACHINES_FILE
 
 
 @dataclass(frozen=True)
@@ -33,8 +46,8 @@ class Machine:
 
 
 class MachineStore:
-    def __init__(self, path: Path = MACHINES_PATH) -> None:
-        self._path = path
+    def __init__(self, path: Path | None = None) -> None:
+        self._path = path or default_machines_path()
 
     @property
     def path(self) -> Path:
@@ -67,7 +80,7 @@ class MachineStore:
         tmp.replace(self._path)
 
 
-__all__ = ["MACHINES_PATH", "Machine", "MachineStore"]
+__all__ = ["MACHINES_FILE", "Machine", "MachineStore", "default_machines_path"]
 
 
 # Touch so the path isn't dead.

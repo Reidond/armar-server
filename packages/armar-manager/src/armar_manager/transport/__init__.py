@@ -2,11 +2,11 @@
 
 from .client import AgentClient
 from .hostkeys import (
-    APP_KNOWN_HOSTS,
     HostKey,
     HostKeyMismatch,
     HostKeyPinner,
     HostKeyRejected,
+    default_known_hosts_path,
 )
 from .http import HttpAgentClient, LocalConnection
 from .system_tunnel import SystemSshTunnel
@@ -18,7 +18,6 @@ from .tunnel import (
 )
 
 __all__ = [
-    "APP_KNOWN_HOSTS",
     "DEFAULT_AGENTD_PORT",
     "AgentClient",
     "AsyncSshTunnel",
@@ -31,4 +30,5 @@ __all__ = [
     "SystemSshTunnel",
     "TunnelError",
     "TunnelSpec",
+    "default_known_hosts_path",
 ]

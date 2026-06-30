@@ -2,31 +2,46 @@
 <component type="desktop-application">
   <id>io.github.anomalyco.ArmarManager</id>
   <name>Armar Manager</name>
-  <summary>Manage modded Arma Reforger dedicated servers</summary>
+  <summary>Manage modded Arma Reforger servers</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
+  <developer id="io.github.anomalyco">
+    <name>Armar Server contributors</name>
+  </developer>
   <description>
     <p>
       Armar Manager is a Kirigami/PySide6 desktop application that manages
-      N modded Arma Reforger dedicated servers across M machines, by
-      speaking HTTP+SSE to a small `armar-agentd` daemon over an SSH tunnel.
+      N modded Arma Reforger dedicated servers across M machines. It speaks
+      HTTP and Server-Sent Events to a small armar-agentd daemon that runs
+      on each managed machine, tunnelled over SSH so no public ports are
+      exposed.
     </p>
     <p>
-      It uses your existing SSH keys to authenticate to remote machines, so
-      there is no public port to expose. Mods are resolved from Workshop URLs
-      and pinned into a lockfile for reproducible runs.
+      Authentication uses your existing SSH agent; the manager never
+      reaches into the host filesystem. Mods are resolved from Workshop
+      URLs and pinned into a lockfile for reproducible runs.
     </p>
   </description>
-  <url type="homepage">https://github.com/anomalyco/armar-server</url>
-  <categories>
-    <category>Game</category>
-    <category>Utility</category>
-  </categories>
+  <launchable type="desktop-id">io.github.anomalyco.ArmarManager.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/anomalyco/armar-server/main/docs/screenshots/server-list.png</image>
+      <caption>Server list across multiple machines</caption>
+    </screenshot>
+  </screenshots>
   <content_rating type="oars-1.1" />
+  <branding>
+    <color type="primary" scheme_preference="light">#3584e4</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+  <url type="homepage">https://github.com/anomalyco/armar-server</url>
+  <url type="bugtracker">https://github.com/anomalyco/armar-server/issues</url>
+  <url type="vcs-browser">https://github.com/anomalyco/armar-server</url>
   <releases>
     <release version="0.1.0" date="2026-01-01">
       <description>
-        <p>Initial release with multi-server instance model, agentd, and desktop UI shell.</p>
+        <p>Initial release with the multi-server instance model, the
+        armar-agentd fleet daemon, and the Kirigami desktop UI shell.</p>
       </description>
     </release>
   </releases>
