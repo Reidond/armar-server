@@ -87,8 +87,8 @@ modules:
                    /app/share/applications/io.github.Reidond.ArmarManager.desktop
       - install -Dm644 flatpak/io.github.Reidond.ArmarManager.metainfo.xml
                    /app/share/metainfo/io.github.Reidond.ArmarManager.metainfo.xml
-      - install -Dm644 flatpak/io.github.Reidond.ArmarManager.svg
-                   /app/share/icons/hicolor/scalable/apps/io.github.Reidond.ArmarManager.svg
+      - install -Dm644 flatpak/io.github.Reidond.ArmarManager.png
+                   /app/share/icons/hicolor/128x128/apps/io.github.Reidond.ArmarManager.png
     sources:
       - type: dir
         path: ..

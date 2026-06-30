@@ -46,6 +46,14 @@ for pkg in armar-core armar-manager; do
     uv build --package "$pkg" -o "$OUT_DIR"
 done
 
+ICON_SVG="$ROOT/flatpak/${APP_ID}.svg"
+ICON_PNG="$ROOT/flatpak/${APP_ID}.png"
+if command -v rsvg-convert >/dev/null 2>&1; then
+    rsvg-convert -w 128 -h 128 "$ICON_SVG" -o "$ICON_PNG"
+else
+    die "rsvg-convert not on PATH — install librsvg2-bin (Fedora) or librsvg2-bin (Debian)"
+fi
+
 for ref in \
     "org.kde.Sdk//6.10" \
     "org.kde.Platform//6.10" \

@@ -77,7 +77,7 @@ jobs:
       - name: Install Flatpak toolchain + KDE runtimes
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends elfutils flatpak flatpak-builder
+          sudo apt-get install -y --no-install-recommends elfutils flatpak flatpak-builder librsvg2-bin
           flatpak --user remote-add --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak --user install -y --noninteractive flathub \
@@ -155,7 +155,7 @@ jobs:
       - name: Install Flatpak toolchain + KDE runtimes
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends elfutils flatpak flatpak-builder
+          sudo apt-get install -y --no-install-recommends elfutils flatpak flatpak-builder librsvg2-bin
           flatpak --user remote-add --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak --user install -y --noninteractive flathub \

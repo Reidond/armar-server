@@ -21,3 +21,6 @@ __pycache__/
 # Ephemeral binaries downloaded by download-actionlint.bash (CI/agents).
 # Prefer: uv run --group lint actionlint
 /actionlint
+
+# Generated at Flatpak build time from the SVG source icon.
+/flatpak/io.github.Reidond.ArmarManager.png
