@@ -23,12 +23,6 @@
     </p>
   </description>
   <launchable type="desktop-id">io.github.Reidond.ArmarManager.desktop</launchable>
-  <screenshots>
-    <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Reidond/armar-server/main/docs/screenshots/server-list.png</image>
-      <caption>Server list across multiple machines</caption>
-    </screenshot>
-  </screenshots>
   <content_rating type="oars-1.1" />
   <branding>
     <color type="primary" scheme_preference="light">#3584e4</color>
