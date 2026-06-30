@@ -41,6 +41,11 @@ command -v flatpak >/dev/null 2>&1 || die "flatpak not on PATH"
 
 mkdir -p "$OUT_DIR"
 
+log "building armar-core + armar-manager wheels for offline flatpak install"
+for pkg in armar-core armar-manager; do
+    uv build --package "$pkg" -o "$OUT_DIR"
+done
+
 for ref in \
     "org.kde.Sdk//6.10" \
     "org.kde.Platform//6.10" \

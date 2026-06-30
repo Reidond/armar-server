@@ -79,7 +79,10 @@ modules:
   - name: armar-manager
     buildsystem: simple
     build-commands:
-      - pip3 install --no-deps --no-index --no-build-isolation --prefix=/app ./packages/armar-core ./packages/armar-manager
+      # Wheels are built on the host by scripts/build-flatpak.sh (needs
+      # hatchling + git for uv-dynamic-versioning). Do not pip-install
+      # source trees inside flatpak-builder — no build backend there.
+      - pip3 install --no-deps --no-index --prefix=/app dist/armar_core-*.whl dist/armar_manager-*.whl
       - install -Dm644 flatpak/io.github.Reidond.ArmarManager.desktop
                    /app/share/applications/io.github.Reidond.ArmarManager.desktop
       - install -Dm644 flatpak/io.github.Reidond.ArmarManager.metainfo.xml
