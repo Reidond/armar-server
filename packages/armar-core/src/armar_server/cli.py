@@ -103,8 +103,36 @@ max_fps = 60
 # --------------------------------------------------------------------------- #
 
 
+# Set by the top-level callback from ``-I/--instance``. ``None`` means the
+# legacy cwd single-server layout; a slug routes every lifecycle/config/mods
+# command at that registry instance's namespaced paths and ports.
+_active_instance: str | None = None
+
+
 def _settings() -> AppSettings:
-    return AppSettings()
+    """Resolve the layout the lifecycle/config commands operate on.
+
+    Without ``-I/--instance`` this is the legacy cwd layout. With a slug,
+    the instance is looked up in the registry and its namespaced layout
+    (``data/instances/<slug>/…`` + its port triplet) is projected onto a
+    fresh ``AppSettings`` for the pure builders.
+    """
+    base = AppSettings()
+    if _active_instance is None:
+        return base
+    try:
+        instance = InstanceRegistry(base).show(_active_instance)
+    except InstanceNotFoundError:
+        raise ConfigError(
+            f"instance {_active_instance!r} not found; create it with "
+            f"`armar instance create --slug {_active_instance} --name <name>`"
+        ) from None
+    return instance.to_app_settings(base)
+
+
+def _registry() -> InstanceRegistry:
+    """Registry rooted at the base (cwd) layout, independent of ``-I``."""
+    return InstanceRegistry(AppSettings())
 
 
 @contextmanager
@@ -166,6 +194,12 @@ def _version_callback(value: bool) -> None:
 @app.callback()
 def _main(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging."),
+    instance: str | None = typer.Option(
+        None,
+        "--instance",
+        "-I",
+        help="Operate on this registry instance (slug) instead of the cwd default.",
+    ),
     version: bool = typer.Option(
         False,
         "--version",
@@ -174,6 +208,8 @@ def _main(
         help="Print the armar-core version and exit.",
     ),
 ) -> None:
+    global _active_instance
+    _active_instance = instance
     setup_logging(verbose=verbose)
 
 
@@ -504,7 +540,7 @@ def service_install(
 def instance_list() -> None:
     """List all instances in the registry."""
     with _guard():
-        registry = InstanceRegistry(_settings())
+        registry = _registry()
         rows = registry.list()
         if not rows:
             console.print("No instances. Use [bold]armar instance create[/].")
@@ -533,7 +569,7 @@ def instance_show(slug: str = typer.Argument(..., help="Instance slug.")) -> Non
     """Show a single instance's layout."""
     with _guard():
         try:
-            settings = InstanceRegistry(_settings()).show(slug)
+            settings = _registry().show(slug)
         except InstanceNotFoundError:
             raise ConfigError(f"instance {slug!r} not found") from None
         table = Table(title=f"Instance {settings.slug}")
@@ -565,9 +601,7 @@ def instance_create(
         except ValueError as exc:
             raise ConfigError(str(exc)) from exc
         try:
-            settings = InstanceRegistry(_settings()).create(
-                slug=slug, name=name, network_mode=network_mode
-            )
+            settings = _registry().create(slug=slug, name=name, network_mode=network_mode)
         except InstanceAlreadyExistsError as exc:
             raise ConfigError(str(exc)) from exc
         console.print(
@@ -575,6 +609,7 @@ def instance_create(
             f"(game={settings.game_port} a2s={settings.a2s_port} rcon={settings.rcon_port}, "
             f"container={settings.container_name})"
         )
+        console.print(f"Next: [bold]armar -I {settings.slug} init[/] to add a server.toml.")
 
 
 @instance_app.command("remove")
@@ -584,7 +619,7 @@ def instance_remove(
 ) -> None:
     """Remove an instance's directory."""
     with _guard():
-        registry = InstanceRegistry(_settings())
+        registry = _registry()
         try:
             registry.remove(slug, running=force)
         except InstanceNotFoundError:
@@ -599,7 +634,7 @@ def instance_adopt_default() -> None:
     """Migrate the legacy cwd single-server install into the registry."""
     with _guard():
         try:
-            settings = InstanceRegistry(_settings()).adopt_default()
+            settings = _registry().adopt_default()
         except InstanceAlreadyExistsError as exc:
             raise ConfigError(str(exc)) from exc
         if settings is None:

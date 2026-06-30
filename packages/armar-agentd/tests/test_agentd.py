@@ -224,3 +224,45 @@ def test_logs_stream_endpoint_returns_sse(client: TestClient, workspace: dict[st
     # auth gating works.
     r = client.get("/api/v1/instances/alpha/logs/stream", headers=auth)
     assert r.status_code in (200, 503)
+
+
+# ---- CLI: serve kwargs + protocol-version -------------------------------
+
+
+def test_serve_kwargs_defaults_to_settings_tcp() -> None:
+    from armar_agentd.app import _serve_kwargs
+
+    settings = AgentSettings(bind_host="127.0.0.1", bind_port=8477)
+    assert _serve_kwargs(settings) == {"host": "127.0.0.1", "port": 8477}
+
+
+def test_serve_kwargs_uds_setting_when_configured(tmp_path: Path) -> None:
+    from armar_agentd.app import _serve_kwargs
+
+    sock = tmp_path / "agent.sock"
+    settings = AgentSettings(uds_path=sock)
+    assert _serve_kwargs(settings) == {"uds": str(sock)}
+
+
+def test_serve_kwargs_cli_bind_overrides_settings() -> None:
+    from armar_agentd.app import _serve_kwargs
+
+    settings = AgentSettings(bind_host="127.0.0.1", bind_port=8477)
+    assert _serve_kwargs(settings, bind="127.0.0.1:9000") == {"host": "127.0.0.1", "port": 9000}
+
+
+def test_serve_kwargs_cli_uds_overrides_settings() -> None:
+    from armar_agentd.app import _serve_kwargs
+
+    settings = AgentSettings(bind_host="127.0.0.1", bind_port=8477)
+    assert _serve_kwargs(settings, uds="/run/agent.sock") == {"uds": "/run/agent.sock"}
+
+
+def test_protocol_version_flag_prints_integer(capsys: pytest.CaptureFixture[str]) -> None:
+    from armar_agentd.app import main
+
+    from armar_server.contracts import PROTOCOL_VERSION
+
+    rc = main(["--protocol-version"])
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == str(PROTOCOL_VERSION)

@@ -91,7 +91,9 @@ def _default_app_settings(agent_settings: AgentSettings) -> AppSettings:
 def main(argv: list[str] | None = None) -> int:
     """`armar-agentd` entry point. Subcommands:
 
-    - (no subcommand) → start the FastAPI app via uvicorn
+    - ``serve [--bind HOST:PORT | --uds PATH]`` (also the no-subcommand
+      default) → start the FastAPI app via uvicorn
+    - ``--protocol-version`` → print the wire protocol version and exit
     - ``install`` → install the systemd --user unit + enable linger
     - ``uninstall`` → remove the systemd --user unit
     - ``token print`` / ``token rotate``
@@ -100,7 +102,15 @@ def main(argv: list[str] | None = None) -> int:
     Implementation lives in the bootstrap subpackage; we dispatch here.
     """
     parser = argparse.ArgumentParser(prog="armar-agentd")
+    parser.add_argument(
+        "--protocol-version",
+        action="store_true",
+        help="Print the wire protocol version and exit (used by the desktop handshake).",
+    )
     sub = parser.add_subparsers(dest="cmd", required=False)
+    serve = sub.add_parser("serve", help="Run the FastAPI app via uvicorn.")
+    serve.add_argument("--bind", default=None, help="HOST:PORT to listen on (loopback only).")
+    serve.add_argument("--uds", default=None, help="Unix-domain socket path (token disabled).")
     sub.add_parser("install")
     sub.add_parser("uninstall")
     sub.add_parser("doctor")
@@ -110,8 +120,11 @@ def main(argv: list[str] | None = None) -> int:
     token_sub.add_parser("rotate")
     args = parser.parse_args(argv)
 
-    if args.cmd in (None,):
-        return _serve()
+    if args.protocol_version:
+        print(PROTOCOL_VERSION)
+        return 0
+    if args.cmd in (None, "serve"):
+        return _serve(bind=getattr(args, "bind", None), uds=getattr(args, "uds", None))
     if args.cmd == "install":
         from .bootstrap.install import install
 
@@ -132,26 +145,47 @@ def main(argv: list[str] | None = None) -> int:
     return 1
 
 
-def _serve() -> int:
+def _serve(*, bind: str | None = None, uds: str | None = None) -> int:
     import uvicorn
 
     settings = AgentSettings()
-    if settings.uds_path:
+    kwargs = _serve_kwargs(settings, bind=bind, uds=uds)
+    if "uds" in kwargs:
         uvicorn.run(
             "armar_agentd.app:create_app",
-            uds=str(settings.uds_path),
             factory=True,
             log_level="info",
+            uds=str(kwargs["uds"]),
         )
     else:
         uvicorn.run(
             "armar_agentd.app:create_app",
-            host=settings.bind_host,
-            port=settings.bind_port,
             factory=True,
             log_level="info",
+            host=str(kwargs["host"]),
+            port=int(kwargs["port"]),
         )
     return 0
+
+
+def _serve_kwargs(
+    settings: AgentSettings, *, bind: str | None = None, uds: str | None = None
+) -> dict[str, str | int]:
+    """Resolve uvicorn transport kwargs from CLI overrides + settings.
+
+    CLI ``--uds``/``--bind`` win over the configured defaults. This keeps
+    the systemd unit (which passes ``serve --bind HOST:PORT`` / ``--uds
+    PATH``) and the bare ``armar-agentd`` (settings-driven) on one path.
+    Pure so it can be asserted without starting uvicorn.
+    """
+    if uds:
+        return {"uds": uds}
+    if bind:
+        host, _, port = bind.rpartition(":")
+        return {"host": (host or settings.bind_host).strip("[]"), "port": int(port)}
+    if settings.uds_path:
+        return {"uds": str(settings.uds_path)}
+    return {"host": settings.bind_host, "port": settings.bind_port}
 
 
 if __name__ == "__main__":
