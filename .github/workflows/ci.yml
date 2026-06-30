@@ -138,7 +138,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck docker/entrypoint.sh
+      - run: shellcheck docker/entrypoint.sh install/install.sh scripts/gen-flatpak-deps.sh scripts/qmllint.sh
 
   qmllint:
     name: qmllint (QML)

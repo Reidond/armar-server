@@ -36,7 +36,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
 
-      - name: Guard: skip if HEAD is a tagged release
+      - name: "Guard: skip if HEAD is a tagged release"
         run: |
           if git tag --points-at HEAD | grep -q '^v'; then
             echo "::error::HEAD is a v* tag; the release job handles this ref."
@@ -91,21 +91,12 @@ jobs:
           sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
           echo "version=$(cat .version)" >> "$GITHUB_OUTPUT"
 
-      - name: Publish armar-core to PyPI
+      # Publishes every built distribution in dist/ (armar-core, armar-cli,
+      # armar-agentd) in lockstep. skip-existing makes a partial re-run safe.
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
-          package-dir: dist
-          # Publish only the armar-core wheel + sdist by filtering on filename.
-          # The agentd wheel has its own Trusted Publisher; we publish it in the
-          # next step.
-          skip-existing: true
-
-      - name: Publish armar-agentd to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist
-          package-dir: dist
           skip-existing: true
 
       - name: Create GitHub Release with notes

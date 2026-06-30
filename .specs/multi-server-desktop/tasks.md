@@ -16,16 +16,22 @@
   mods/config/scenarios/logs/jobs SSE; `install.sh` + `armar-agentd install/token/doctor`; manager
   transport + Kirigami UI shell + Mods/Config/Logs panes; `cd.yml` preview/release + `scripts/release.py`;
   Flatpak manifest + vendored deps). The full offline gate is green over all of it.
-- **Remaining (tracked for the P1/P4 sub-specs, not closeable in the offline gate):**
-  - Desktop onboarding **token-on-the-main-path via Secret Service**: `transport/manager.py` still
-    constructs the remote `HttpAgentClient` with `token=None` (the agent enforces the token on
-    `/info`; local UDS is token-disabled). Obtaining the token over SSH-exec
-    (`armar-agentd token print`) and persisting it to the freedesktop Secret Service is P1 work that
-    needs a live sshd + Secret Service to integration-test.
-  - `install.sh` currently `require`s `uv`/`podman`; the design's "bootstrap uv (pinned, sha256) +
-    ensure podman" is P4.
-  - Flathub submission, the Flatpak bundle on the preview prerelease, token-rotation UX, and the
-    `SystemSshTunnel` escape-hatch polish are P4.
+- **Sub-specs authored + implemented this session:**
+  - `.specs/multi-server-desktop-p1/spec.md` — **token on the main path via Secret Service**:
+    `secrets/tokens.py` (`SecretTokenStore` over keyring with an in-memory fallback) +
+    `transport/connection.py` (`dial_remote`/`rotate_remote_token`); `ConnectionManager` now loads
+    a stored token, obtains it once over SSH-exec (`armar-agentd token print`) when absent, persists
+    it, and supports rotation. The token travels only as the `Authorization` header. Covered by
+    `test_secret_token_store.py` + `test_connection.py` (Qt-free fakes).
+  - `.specs/multi-server-desktop-p4/spec.md` — **distribution/ops hardening (offline slice)**:
+    `install.sh` bootstraps `uv` (pinned via `UV_VERSION`) when missing and fails clearly when no
+    container runtime exists; all shell scripts + both workflows are now `shellcheck`/`actionlint`
+    clean (fixed a YAML-invalid step name and the bogus `package-dir` PyPI input in `cd.yml`).
+- **Remaining (need external infra; tracked in the P4 sub-spec):**
+  - Flatpak `keyring` vendoring (regenerate `flatpak/python3-deps.*.json`) so Secret Service works
+    inside the sandbox; until then the sandbox uses the in-memory token fallback.
+  - Flathub submission, the `.flatpak` bundle on the rolling `preview` prerelease, and a
+    token-rotation button in QML.
   - `F0` (PyPI name claim + Trusted Publishers) remains an external prerequisite before the first tag.
 
 ## Dependency Graph

@@ -21,7 +21,11 @@
 
 set -eu
 
-ARCHS="${@:-x86_64 aarch64}"
+if [ "$#" -gt 0 ]; then
+    ARCHS="$*"
+else
+    ARCHS="x86_64 aarch64"
+fi
 OUT_DIR="flatpak"
 mkdir -p "${OUT_DIR}"
 
@@ -47,6 +51,9 @@ for ARCH in $ARCHS; do
     esac
     OUT="${OUT_DIR}/python3-deps.${ARCH}.json"
     echo ">> generating ${OUT} (${PLATFORM})"
+    # SC2086: $REQS is intentionally word-split — each requirement is a
+    # separate positional value for --requirements.
+    # shellcheck disable=SC2086
     uvx --quiet --from "git+https://github.com/johannesjh/req2flatpak" \
         req2flatpak \
         --requirements $REQS \
