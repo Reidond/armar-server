@@ -44,7 +44,10 @@ jobs:
           fi
 
       - name: Build wheels for armar-core + armar-cli + armar-agentd
-        run: uv build --package armar-core --package armar-cli --package armar-agentd
+        run: |
+          for pkg in armar-core armar-cli armar-agentd; do
+            uv build --package "$pkg"
+          done
 
       - name: Compute version
         id: ver
@@ -83,7 +86,10 @@ jobs:
           cache-dependency-glob: "**/pyproject.toml"
 
       - name: Build Python wheels (all published packages)
-        run: uv build --package armar-core --package armar-cli --package armar-agentd
+        run: |
+          for pkg in armar-core armar-cli armar-agentd; do
+            uv build --package "$pkg"
+          done
 
       - name: Compute version + checksums
         id: meta
