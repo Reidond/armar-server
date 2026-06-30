@@ -24,7 +24,7 @@ jobs:
     name: Preview release (rolling prerelease)
     if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +55,32 @@ jobs:
           uv run python -c "from importlib.metadata import version; print(version('armar-core'))" > .version
           echo "version=$(cat .version)" >> "$GITHUB_OUTPUT"
 
+      - name: Cache Flatpak runtimes
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/flatpak
+            ~/.cache/flatpak-builder
+          key: flatpak-kde610-${{ runner.os }}-${{ hashFiles('flatpak/**', 'scripts/build-flatpak.sh') }}
+          restore-keys: |
+            flatpak-kde610-${{ runner.os }}-
+
+      - name: Install Flatpak toolchain + KDE runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder
+          flatpak --user remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak --user install -y --noninteractive flathub \
+            org.kde.Platform//6.10 \
+            org.kde.Sdk//6.10 \
+            io.qt.PySide.BaseApp//6.10
+
+      - name: Build Flatpak bundle
+        run: |
+          chmod +x scripts/build-flatpak.sh
+          ./scripts/build-flatpak.sh
+
       - name: Stage install.sh
         run: cp install/install.sh dist/
 
@@ -65,7 +91,11 @@ jobs:
           name: "preview — ${{ steps.ver.outputs.version }}"
           prerelease: true
           generate_release_notes: true
-          files: dist/*.whl dist/*.tar.gz dist/install.sh
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/install.sh
+            dist/${{ env.FLATPAK_APP_ID }}.flatpak
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
