@@ -27,9 +27,14 @@
     `install.sh` bootstraps `uv` (pinned via `UV_VERSION`) when missing and fails clearly when no
     container runtime exists; all shell scripts + both workflows are now `shellcheck`/`actionlint`
     clean (fixed a YAML-invalid step name and the bogus `package-dir` PyPI input in `cd.yml`).
+- **Flatpak `keyring` vendoring: DONE.** `flatpak/python3-deps.*.json` regenerated to include the
+  keyring closure (`keyring`, `secretstorage`, `jeepney`, `jaraco.classes/context/functools`,
+  `more-itertools`) so Secret Service works inside the sandbox. `gen-flatpak-deps.sh` now drops
+  non-Linux marker rows (keyring's win32-only `pywin32-ctypes`) and stamps each per-arch module with
+  a module-level `only-arches` so flatpak-builder runs only the matching one.
 - **Remaining (need external infra; tracked in the P4 sub-spec):**
-  - Flatpak `keyring` vendoring (regenerate `flatpak/python3-deps.*.json`) so Secret Service works
-    inside the sandbox; until then the sandbox uses the in-memory token fallback.
+  - A **real Flatpak build** to verify the regenerated manifest (needs `org.flatpak.Builder` +
+    the KDE runtime — not available in the offline gate).
   - Flathub submission, the `.flatpak` bundle on the rolling `preview` prerelease, and a
     token-rotation button in QML.
   - `F0` (PyPI name claim + Trusted Publishers) remains an external prerequisite before the first tag.

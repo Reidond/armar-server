@@ -33,11 +33,15 @@ mkdir -p "${OUT_DIR}"
 # deps, and the PySide6 stack which is provided by BaseApp).
 # Dev-only filter matches the `[dependency-groups] dev` group:
 # basedpyright, pytest, pytest-httpx, ruff.
+# The penultimate grep drops non-Linux marker rows (e.g. keyring's
+# win32-only `pywin32-ctypes`) before `sed` strips the markers — the
+# build targets Linux x86_64/aarch64 only.
 uv export --no-hashes --format requirements-txt 2>/dev/null \
     | grep -v '^-e ' \
     | grep -v '^#' \
     | grep -v -i -E '^(pyside6|shiboken6|pyqt5|pyqt6|basedpyright|pytest|pytest-httpx|ruff|nodejs-wheel-binaries|colorama)' \
     | grep -E '^[A-Za-z0-9._-]+\[?==' \
+    | grep -v -E "; *sys_platform *== *['\"](win32|darwin|cygwin)['\"]" \
     | sed 's/;.*//' \
     | tr -d ' ' > "${OUT_DIR}/.runtime-reqs.txt"
 
@@ -59,15 +63,20 @@ for ARCH in $ARCHS; do
         --requirements $REQS \
         --target-platforms "${PLATFORM}" \
         --outfile "${OUT}"
-    # req2flatpak emits every module with the same `name`. Rename
-    # per-arch so the host manifest can include both without a name
-    # collision.
+    # req2flatpak emits every module with the same `name` and no arch
+    # gating. Rename per-arch (so the manifest can list both without a
+    # name collision) and add a module-level `only-arches` so
+    # flatpak-builder runs only the module matching the build target —
+    # otherwise the wrong-arch module's pip install would fail on the
+    # binary wheels (cffi/cryptography/pydantic-core) filtered out by
+    # their source-level `only-arches`.
     python3 -c "
 import json, pathlib
 p = pathlib.Path('${OUT}')
 data = json.loads(p.read_text())
-data['name'] = f'python3-deps-${ARCH}'
-p.write_text(json.dumps(data, indent=4) + '\n')
+ordered = {'name': f'python3-deps-${ARCH}', 'only-arches': ['${ARCH}']}
+ordered.update({k: v for k, v in data.items() if k != 'name'})
+p.write_text(json.dumps(ordered, indent=4) + '\n')
 "
 done
 

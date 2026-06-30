@@ -18,12 +18,21 @@
   - drop the dead sha-tool check;
   - stay idempotent and `shellcheck`-clean.
 
+## Done after the initial slice
+
+- **Flatpak `keyring` vendoring**: `flatpak/python3-deps.*.json` regenerated via
+  `scripts/gen-flatpak-deps.sh` to include the keyring closure (`keyring`, `secretstorage`,
+  `jeepney`, `jaraco.classes/context/functools`, `more-itertools`). The generator now (a) drops
+  non-Linux marker rows so keyring's win32-only `pywin32-ctypes` is not vendored, and (b) stamps
+  each per-arch module with a module-level `only-arches` so flatpak-builder runs only the module
+  matching the build target (otherwise the wrong-arch module's `pip install --no-index` fails on
+  the arch-specific binary wheels). Verifying with a real Flatpak build still needs
+  `org.flatpak.Builder` + the KDE runtime (out of the offline gate).
+
 ## Non-goals / follow-ups (need external infra — tracked, not done here)
 
-- **Flatpak `keyring` vendoring**: the P1 Secret-Service token store needs `keyring`
-  (+`secretstorage`/`jeepney`) inside the sandbox. Regenerating `flatpak/python3-deps.*.json`
-  needs `req2flatpak` + network (`scripts/gen-flatpak-deps.sh`) and a real Flatpak build to verify
-  — out of the offline gate. Until then the sandbox degrades to the in-memory token fallback.
+- A **real Flatpak build** (`org.flatpak.Builder` + `flatpak-builder-lint`) to verify the
+  regenerated manifest end to end.
 - **Flathub submission** + adding the `.flatpak` bundle to the rolling `preview` prerelease
   (`cd.yml`) — needs a Flatpak build runner; deferred.
 - **Token-rotation UX in QML** — the transport supports it (`ConnectionManager.rotateToken`);
