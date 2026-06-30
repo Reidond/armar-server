@@ -65,9 +65,9 @@ flatpak-builder \
     "$BUILD_DIR" \
     "$MANIFEST"
 
-# Finish + export without appstreamcli compose (CI lacks the icon tooling
-# compose needs for our SVG-only asset; GitHub Release bundles do not need
-# AppStream catalog metadata).
+# Finish + export without flatpak-builder's appstreamcli compose step (CI
+# fails compose for our SVG-only icon asset; GitHub Release bundles are
+# fine without regenerated AppStream catalog metadata).
 flatpak build-finish \
     --share=ipc \
     --share=network \
@@ -79,7 +79,7 @@ flatpak build-finish \
     --command=armar-manager \
     "$BUILD_DIR"
 
-flatpak build-export --no-appstream --user "$REPO_DIR" "$BUILD_DIR"
+flatpak build-export --user "$REPO_DIR" "$BUILD_DIR"
 
 BUNDLE="$OUT_DIR/${APP_ID}.flatpak"
 flatpak build-bundle "$REPO_DIR" "$BUNDLE" "$APP_ID"
